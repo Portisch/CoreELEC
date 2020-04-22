@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<dtb-settings>
+
+  <heartbeat status="heartbeat_on">
+    <heartbeat_on name="on">
+      <cmd path="/leds/blueled linux,default-trigger" type="s" >
+        <value>heartbeat</value>
+      </cmd>
+    </heartbeat_on>
+    <heartbeat_off name="off">
+      <cmd path="/leds/blueled linux,default-trigger" type="s" >
+        <value>none</value>
+      </cmd>
+    </heartbeat_off>
+  </heartbeat>
+
+  <emmc status="HS200">
+    <high_speed name="HS200,HS400">
+      <cmd path="/emmc/emmc caps2" type="s" >
+        <value>MMC_CAP2_HS200</value>
+        <value>MMC_CAP2_HS400</value>
+      </cmd>
+    </high_speed>
+    <normal_speed name="HS200">
+      <cmd path="/emmc/emmc caps2" type="s" >
+        <value>MMC_CAP2_HS200</value>
+      </cmd>
+    </normal_speed>
+  </emmc>
+
+  <slowsdio status="normal">
+    <slow_sdio name="slow">
+      <cmd path="/sdio/sdio f_max" type="u" >
+        <value>170000000</value>
+      </cmd>
+    </slow_sdio>
+    <normal_sdio name="normal">
+      <cmd path="/sdio/sdio f_max" type="u" >
+        <value>200000000</value>
+      </cmd>
+    </normal_sdio>
+  </slowsdio>
+
+</dtb-settings>

@@ -1,0 +1,58 @@
+From ee37d9975a38855f4f5924229b2b007f3aa8b5e6 Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Thu, 23 Apr 2020 18:58:53 +0200
+Subject: [PATCH 1/2] fix main bar height, clean up
+
+---
+ .../Default/1080i/service-CoreELEC-Settings-mainWindow.xml  | 2 +-
+ src/resources/lib/modules/hardware.py                       | 6 ------
+ 2 files changed, 1 insertion(+), 7 deletions(-)
+
+diff --git a/skins/Default/1080i/service-CoreELEC-Settings-mainWindow.xml b/skins/Default/1080i/service-CoreELEC-Settings-mainWindow.xml
+index 816e4a7..16774af 100644
+--- a/skins/Default/1080i/service-CoreELEC-Settings-mainWindow.xml
++++ b/skins/Default/1080i/service-CoreELEC-Settings-mainWindow.xml
+@@ -29,7 +29,7 @@
+                 <left>0</left>
+                 <top>160</top>
+                 <width>440</width>
+-                <height>700</height>
++                <height>600</height>
+                 <onleft>1500</onleft>
+                 <pagecontrol>-</pagecontrol>
+                 <scrolltime>300</scrolltime>
+diff --git a/src/resources/lib/modules/hardware.py b/src/resources/lib/modules/hardware.py
+index 8c14a0e..d60504c 100644
+--- a/src/resources/lib/modules/hardware.py
++++ b/src/resources/lib/modules/hardware.py
+@@ -288,13 +288,10 @@ class hardware:
+                     self.load_values()
+                     response = xbmcDialog.ok(self.oe._(33412).encode('utf-8'), self.oe._(33417).encode('utf-8'))
+                 elif IBL_Code == 1:
+-                    xbmcDialog = xbmcgui.Dialog()
+                     response = xbmcDialog.ok(self.oe._(33413).encode('utf-8'), self.oe._(33420).encode('utf-8'))
+                 elif IBL_Code == (-2 & 0xff):
+-                    xbmcDialog = xbmcgui.Dialog()
+                     response = xbmcDialog.ok(self.oe._(33414).encode('utf-8'), self.oe._(33419).encode('utf-8'))
+                 else:
+-                    xbmcDialog = xbmcgui.Dialog()
+                     response = xbmcDialog.ok(self.oe._(33414).encode('utf-8'), self.oe._(33418).encode('utf-8') % IBL_Code)
+ 
+                 if IBL_Code != 0:
+@@ -567,13 +564,10 @@ class hardware:
+                     self.load_values()
+                     response = xbmcDialog.ok(self.oe._(33412).encode('utf-8'), self.oe._(33417).encode('utf-8'))
+                   elif IBL_Code == 1:
+-                    xbmcDialog = xbmcgui.Dialog()
+                     response = xbmcDialog.ok(self.oe._(33413).encode('utf-8'), self.oe._(33420).encode('utf-8'))
+                   elif IBL_Code == (-2 & 0xff):
+-                    xbmcDialog = xbmcgui.Dialog()
+                     response = xbmcDialog.ok(self.oe._(33414).encode('utf-8'), self.oe._(33419).encode('utf-8'))
+                   else:
+-                    xbmcDialog = xbmcgui.Dialog()
+                     response = xbmcDialog.ok(self.oe._(33414).encode('utf-8'), self.oe._(33418).encode('utf-8') % IBL_Code)
+ 
+                   if IBL_Code != 0:
+-- 
+2.17.1
+
