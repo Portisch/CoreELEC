@@ -172,6 +172,7 @@ function update_dtb() {
       continue
     fi
 
+    changed=0
     for cnt in $(seq 1 $cmd_count); do
       cmd_path=$(xmlstarlet sel -t -v "//$node/node()[@name='$node_status']/cmd[$cnt]/@path" $xml_file)
       cmd_type=$(xmlstarlet sel -t -m "//$node/node()[@name='$node_status']/cmd[$cnt]" -v "concat('-t ', @type)" $xml_file)
@@ -182,10 +183,8 @@ function update_dtb() {
         cmd="fdtput $cmd_type $dtb_file $cmd_path $cmd_value"
         cmd_value="${cmd_value//\"}"
         if [ "$act_value" != "$cmd_value" ]; then
-          eval $cmd
-          log " cmd[$cnt]: changed, $cmd_path: '$act_value' -> '$cmd_value', result: $?"
-          log " cmd[$cnt]: $cmd"
           changed=1
+          break
         else
           log " cmd[$cnt]: unchanged, $cmd_path: '$cmd_value' == '$act_value'"
         fi
@@ -193,6 +192,42 @@ function update_dtb() {
         log " not applicable"
       fi
     done
+
+    if [ "$changed" == 1 ]; then
+      option_nodes=$(xmlstarlet sel -t -m "//$node/*" -v "name()" -n $xml_file)
+      name_option_available=0
+
+      for option in $option_nodes; do
+        cmd_count=$(xmlstarlet sel -t -c "count(//$node/$option/cmd)" $xml_file)
+        for cnt in $(seq 1 $cmd_count); do
+          cmd_path=$(xmlstarlet sel -t -v "//$node/$option/cmd[$cnt]/@path" $xml_file)
+          cmd_type=$(xmlstarlet sel -t -m "//$node/$option/cmd[$cnt]" -v "concat('-t ', @type)" $xml_file)
+          act_value=$(fdtget $cmd_type $dtb_file $cmd_path 2>/dev/null)
+          if [ "$?" == 0 ]; then
+            cmd_value=$(xmlstarlet sel -t -m "//$node/$option" -m "cmd[$cnt]/value" -v "concat(.,' ')" $xml_file)
+            [ -n "$cmd_value" ] && cmd_value=${cmd_value::-1}
+            if [ "$act_value" != "$cmd_value" ]; then
+              continue 2
+            fi
+          else
+            continue 2
+          fi
+        done
+        name_option_available=1
+        break
+      done
+
+      if [ "$name_option_available" == 1 ]; then
+        eval $cmd
+        log " cmd[$cnt]: changed, $cmd_path: '$act_value' -> '$cmd_value', result: $?"
+        log " cmd[$cnt]: $cmd"
+      else
+        xmlstarlet ed -L -s "//$node" -t elem -n "${node}_migrated" $xml_file
+        xmlstarlet ed -L -u "//$node/@status" -v "migrated" $xml_file
+        xmlstarlet ed -L -i "//${node}_migrated" -t attr -n "name" -v "migrated" $xml_file
+        log " option not applicable by default dtb.xml, migrate to '${node}_migrated'"
+      fi
+    fi
   done
   log "------------------------------------------"
   log ""
