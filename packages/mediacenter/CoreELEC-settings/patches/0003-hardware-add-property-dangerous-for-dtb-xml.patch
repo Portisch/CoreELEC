@@ -1,0 +1,64 @@
+From b5b9a2227eebdd96b1c2e0b252c7694b840f8bef Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Wed, 10 Jun 2020 16:12:43 +0200
+Subject: [PATCH 3/3] hardware: add property 'dangerous' for dtb-xml
+
+---
+ language/resource.language.en_gb/strings.po |  4 ++++
+ src/resources/lib/modules/hardware.py       | 14 +++++++++++---
+ 2 files changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/language/resource.language.en_gb/strings.po b/language/resource.language.en_gb/strings.po
+index e65d893..2b3f979 100644
+--- a/language/resource.language.en_gb/strings.po
++++ b/language/resource.language.en_gb/strings.po
+@@ -1271,3 +1271,7 @@ msgstr ""
+ msgctxt "#33423"
+ msgid "Finished update of /flash/dtb.img.[CR]A reboot is now required!"
+ msgstr ""
++
++msgctxt "#33424"
++msgid "[COLOR red]Are you sure to change this value?[/COLOR][CR]Please enter confirmation code '%s'"
++msgstr ""
+diff --git a/src/resources/lib/modules/hardware.py b/src/resources/lib/modules/hardware.py
+index 185bc84..7f87de7 100644
+--- a/src/resources/lib/modules/hardware.py
++++ b/src/resources/lib/modules/hardware.py
+@@ -10,6 +10,7 @@ import oeWindows
+ import threading
+ import subprocess
+ import shutil
++import random
+ 
+ # CEC Wake Up flags from u-boot(bl301)
+ CEC_FUNC_MASK = 0
+@@ -174,6 +175,7 @@ class hardware:
+                             'value': '',
+                             'action': 'set_value_xml',
+                             'type': 'multivalue',
++                            'dangerous': True,
+                             },
+                         'slowsdio': {
+                             'order': 3,
+@@ -762,9 +764,15 @@ class hardware:
+             self.oe.dbg_log('dtb::set_value_xml', 'enter_function', 0)
+             self.oe.set_busy(1)
+             if not listItem == None:
+-                self.set_value(listItem)
+-                self.oe.set_dtbxml_value(listItem.getProperty('entry'), listItem.getProperty('value'))
+-                hardware.check_for_reboot = True
++                num = random.randint(1000, 9999)
++                response = str(num)
++                if 'dangerous' in self.struct[listItem.getProperty('category')]['settings'][listItem.getProperty('entry')]:
++                    xbmcDialog = xbmcgui.Dialog()
++                    response = xbmcDialog.input(self.oe._(33424).encode('utf-8') % str(num), type=xbmcgui.INPUT_NUMERIC)
++                if str(num) == response:
++                    self.set_value(listItem)
++                    self.oe.set_dtbxml_value(listItem.getProperty('entry'), listItem.getProperty('value'))
++                    hardware.check_for_reboot = True
+ 
+             self.oe.dbg_log('dtb::set_value_xml', 'exit_function', 0)
+         except Exception, e:
+-- 
+2.17.1
+
