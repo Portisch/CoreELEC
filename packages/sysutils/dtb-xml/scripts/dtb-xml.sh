@@ -50,6 +50,7 @@ while [ $# -ne 0 ]; do
 done
 
 xml_file="$BOOT_ROOT/dtb.xml"
+default_xml_file="$SYSTEM_ROOT/usr/share/bootloader/dtb.xml"
 dtb_file="$BOOT_ROOT/dtb.img"
 
 function log() {
@@ -154,7 +155,7 @@ function migrate_dtb_to_xml() {
   log ""
 }
 
-function update_dtb() {
+function update_dtb_by_dtb_xml() {
   root_nodes=$(xmlstarlet sel -t -m '/*/*' -v "name()" -n $xml_file)
 
   log ""
@@ -233,6 +234,55 @@ function update_dtb() {
   log ""
 }
 
+function update_dtb_xml() {
+  root_node_version=$(xmlstarlet sel -t -v "//dtb-settings/@version" $xml_file)
+  default_root_node_version=$(xmlstarlet sel -t -v "//dtb-settings/@version" $default_xml_file)
+
+  log ""
+  log "------------------------------------------"
+  log " dtb-settings version:           $root_node_version"
+  log " dtb-settings default version:   $default_root_node_version"
+
+  if [ $root_node_version -lt $default_root_node_version ]; then
+    log " update complete dtb.xml by default dtb.xml"
+    cp -p $default_xml_file $xml_file
+  fi
+
+  root_nodes=$(xmlstarlet sel -t -m '/*/*' -v "name()" -n $xml_file)
+  default_root_nodes=$(xmlstarlet sel -t -m '/*/*' -v "name()" -n $default_xml_file)
+
+  for default_node in $default_root_nodes; do
+    log "------------------------------------------"
+    log " default node:   $default_node"
+
+    default_node_status=$(xmlstarlet sel -t -v "//$default_node/@status" $default_xml_file)
+    default_node_version=$(xmlstarlet sel -t -v "//$default_node/@version" $default_xml_file)
+    log " default status: $default_node_status, version: $default_node_version"
+    node_status=$(xmlstarlet sel -t -v "//$default_node/@status" $xml_file)
+    if [ "${#node_status}" == 0 ]; then
+      log " node in current dtb.xml not found, get it from default dtb.xml"
+      new_node=$(xmlstarlet sel -t -c "//$default_node" $default_xml_file)
+      xmlstarlet ed --subnode "/dtb-settings" -t text -n "" -v "$new_node" $xml_file | \
+              xmlstarlet unesc | xmlstarlet format > tmp_file
+      mv tmp_file $xml_file
+    else
+      node_version=$(xmlstarlet sel -t -v "//$default_node/@version" $xml_file)
+      log " status: $node_status, version: $node_version"
+      if [ $node_version -lt $default_node_version ]; then
+        log " update node to version $default_node_version"
+        xmlstarlet ed -L -d "//$default_node" $xml_file
+        new_node=$(xmlstarlet sel -t -c "//$default_node" $default_xml_file)
+        xmlstarlet ed --subnode "/dtb-settings" -t text -n "" -v "$new_node" $xml_file | \
+                xmlstarlet unesc | xmlstarlet format > tmp_file
+        mv tmp_file $xml_file
+      fi
+    fi
+  done
+
+  log "------------------------------------------"
+  log ""
+}
+
 if [ ! -f $dtb_file ]; then
   log "Error, not found: $dtb_file, exit now"
   exit 2
@@ -251,11 +301,11 @@ if [ "$rw" == "0" ]; then
 fi
 
 if [ ! -f $xml_file ]; then
-  if [ -f $SYSTEM_ROOT/usr/share/bootloader/dtb.xml ]; then
+  if [ -f $default_xml_file ]; then
     log "Creating dtb.xml..."
-    cp -p $SYSTEM_ROOT/usr/share/bootloader/dtb.xml $xml_file
+    cp -p $default_xml_file $xml_file
   else
-    log "Error, not found: '$SYSTEM_ROOT/usr/share/bootloader/dtb.xml', exit now"
+    log "Error, not found: '$default_xml_file', exit now"
     exit 2
   fi
 fi
@@ -265,7 +315,8 @@ if [ "$migrate" == 1 ]; then
 elif [ "$update_migrated" == 1 ]; then
   update_migrated_xml
 else
-  update_dtb
+  update_dtb_xml
+  update_dtb_by_dtb_xml
 fi
 
 if [ "$rw" == "0" ]; then

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<dtb-settings>
+<dtb-settings version="0">
 
-  <heartbeat status="heartbeat_on">
+  <heartbeat status="heartbeat_on" version="0">
     <heartbeat_on name="on">
       <cmd path="/leds/blueled linux,default-trigger" type="s" >
         <value>heartbeat</value>
@@ -14,7 +14,7 @@
     </heartbeat_off>
   </heartbeat>
 
-  <emmc status="HS200">
+  <emmc status="HS200" version="0">
     <high_speed name="HS200,HS400">
       <cmd path="/emmc/emmc caps2" type="s" >
         <value>MMC_CAP2_HS200</value>
@@ -28,7 +28,7 @@
     </normal_speed>
   </emmc>
 
-  <slowsdio status="normal">
+  <slowsdio status="normal" version="0">
     <slow_sdio name="slow">
       <cmd path="/sdio/sdio f_max" type="u" >
         <value>170000000</value>
