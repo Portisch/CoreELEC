@@ -262,7 +262,7 @@ function update_dtb_xml() {
     log " default status: $default_node_status, version: $default_node_version"
     node_status=$(xmlstarlet sel -t -v "//$default_node/@status" $xml_file)
     # new node in default dtb.xml found
-    if [ "${#node_status}" == 0 ]; then
+    if [ -z "$node_status" ]; then
       log " node in current dtb.xml not found, get it from default dtb.xml"
       new_node=$(xmlstarlet sel -t -c "//$default_node" $default_xml_file)
       xmlstarlet ed --subnode "/dtb-settings" -t text -n "" -v "$new_node" $xml_file | \
@@ -299,7 +299,7 @@ function update_dtb_xml() {
     log "------------------------------------------"
     log " node:   $node"
     node_status=$(xmlstarlet sel -t -v "//$node/@status" $default_xml_file)
-    if [ "${#node_status}" == 0 ]; then
+    if [ -z "$node_status" ]; then
       xmlstarlet ed -L -d "//$node" $xml_file
       log " node got removed by default dtb.xml"
     else
