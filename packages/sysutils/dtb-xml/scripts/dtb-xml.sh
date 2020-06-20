@@ -243,6 +243,7 @@ function update_dtb_xml() {
   log " dtb-settings version:           $root_node_version"
   log " dtb-settings default version:   $default_root_node_version"
 
+  # default dtb.xml version changed, overwrite user dtb.xml
   if [ $root_node_version -lt $default_root_node_version ]; then
     log " update complete dtb.xml by default dtb.xml"
     cp -p $default_xml_file $xml_file
@@ -251,6 +252,7 @@ function update_dtb_xml() {
   root_nodes=$(xmlstarlet sel -t -m '/*/*' -v "name()" -n $xml_file)
   default_root_nodes=$(xmlstarlet sel -t -m '/*/*' -v "name()" -n $default_xml_file)
 
+  # compare all default dtb.xml nodes with user dtb.xml
   for default_node in $default_root_nodes; do
     log "------------------------------------------"
     log " default node:   $default_node"
@@ -259,15 +261,18 @@ function update_dtb_xml() {
     default_node_version=$(xmlstarlet sel -t -v "//$default_node/@version" $default_xml_file)
     log " default status: $default_node_status, version: $default_node_version"
     node_status=$(xmlstarlet sel -t -v "//$default_node/@status" $xml_file)
+    # new node in default dtb.xml found
     if [ "${#node_status}" == 0 ]; then
       log " node in current dtb.xml not found, get it from default dtb.xml"
       new_node=$(xmlstarlet sel -t -c "//$default_node" $default_xml_file)
       xmlstarlet ed --subnode "/dtb-settings" -t text -n "" -v "$new_node" $xml_file | \
               xmlstarlet unesc | xmlstarlet format > tmp_file
       mv tmp_file $xml_file
+    # node already exist in dtb.xml, check if version update
     else
       node_version=$(xmlstarlet sel -t -v "//$default_node/@version" $xml_file)
       log " status: $node_status, version: $node_version"
+      # newer version update node
       if [ $node_version -lt $default_node_version ]; then
         log " update node to version $default_node_version"
         xmlstarlet ed -L -d "//$default_node" $xml_file
@@ -275,7 +280,30 @@ function update_dtb_xml() {
         xmlstarlet ed --subnode "/dtb-settings" -t text -n "" -v "$new_node" $xml_file | \
                 xmlstarlet unesc | xmlstarlet format > tmp_file
         mv tmp_file $xml_file
+        option_nodes=$(xmlstarlet sel -t -m "//$default_node/*" -v "name()" -n $xml_file)
+        # check if old status still apply and set it if true
+        for option in $option_nodes; do
+          option_node_name=$(xmlstarlet sel -t -v "//$default_node/$option/@name" $xml_file)
+          if [ $node_status == $option_node_name ]; then
+            xmlstarlet ed -L -u "//$default_node/@status" -v "$node_status" $xml_file
+            log " updated node status to: $node_status"
+            break
+          fi
+        done
       fi
+    fi
+  done
+
+  # compare all user dtb.xml nodes with default dtb.xml
+  for node in $root_nodes; do
+    log "------------------------------------------"
+    log " node:   $node"
+    node_status=$(xmlstarlet sel -t -v "//$node/@status" $default_xml_file)
+    if [ "${#node_status}" == 0 ]; then
+      xmlstarlet ed -L -d "//$node" $xml_file
+      log " node got removed by default dtb.xml"
+    else
+      log " node still in use by default dtb.xml"
     fi
   done
 
