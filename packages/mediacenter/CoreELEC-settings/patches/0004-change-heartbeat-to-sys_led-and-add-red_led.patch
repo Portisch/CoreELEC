@@ -1,0 +1,111 @@
+From f745d83b4b33266c1cb7571ac53172373282d665 Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Sun, 21 Jun 2020 20:52:01 +0200
+Subject: [PATCH 4/4] change heartbeat to sys_led and add red_led
+
+---
+ language/resource.language.en_gb/strings.po |  8 ++++--
+ src/resources/lib/modules/hardware.py       | 31 +++++++++++++++------
+ 2 files changed, 29 insertions(+), 10 deletions(-)
+
+diff --git a/language/resource.language.en_gb/strings.po b/language/resource.language.en_gb/strings.po
+index 2b3f979..05cf10d 100644
+--- a/language/resource.language.en_gb/strings.po
++++ b/language/resource.language.en_gb/strings.po
+@@ -313,7 +313,7 @@ msgid "Enable/Disable USB Power when device is off/suspend"
+ msgstr ""
+ 
+ msgctxt "#789"
+-msgid "Enable/Disable device heartbeat LED"
++msgid "Enable/Disable device LED"
+ msgstr ""
+ 
+ msgctxt "#790"
+@@ -1177,7 +1177,7 @@ msgid "USB Power"
+ msgstr ""
+ 
+ msgctxt "#32419"
+-msgid "Heartbeat LED"
++msgid "System LED"
+ msgstr ""
+ 
+ msgctxt "#32420"
+@@ -1196,6 +1196,10 @@ msgctxt "#32423"
+ msgid "WiFi SoC SDIO Speed"
+ msgstr ""
+ 
++msgctxt "#32424"
++msgid "Red LED"
++msgstr ""
++
+ msgctxt "#32430"
+ msgid "Device OSD Name"
+ msgstr ""
+diff --git a/src/resources/lib/modules/hardware.py b/src/resources/lib/modules/hardware.py
+index 7f87de7..814ee4c 100644
+--- a/src/resources/lib/modules/hardware.py
++++ b/src/resources/lib/modules/hardware.py
+@@ -160,7 +160,7 @@ class hardware:
+                     'name': 32405,
+                     'not_supported': [],
+                     'settings': {
+-                        'heartbeat': {
++                        'sys_led': {
+                             'order': 1,
+                             'name': 32419,
+                             'InfoText': 789,
+@@ -168,8 +168,16 @@ class hardware:
+                             'action': 'set_value_xml',
+                             'type': 'multivalue',
+                             },
+-                        'emmc': {
++                        'red_led': {
+                             'order': 2,
++                            'name': 32424,
++                            'InfoText': 789,
++                            'value': '',
++                            'action': 'set_value_xml',
++                            'type': 'multivalue',
++                            },
++                        'emmc': {
++                            'order': 3,
+                             'name': 32422,
+                             'InfoText': 801,
+                             'value': '',
+@@ -178,7 +186,7 @@ class hardware:
+                             'dangerous': True,
+                             },
+                         'slowsdio': {
+-                            'order': 3,
++                            'order': 4,
+                             'name': 32423,
+                             'InfoText': 802,
+                             'value': '',
+@@ -391,12 +399,19 @@ class hardware:
+                 if not value is None:
+                     self.struct['fan']['settings']['fan_level']['value'] = value
+ 
+-            if not os.path.exists('/sys/firmware/devicetree/base/leds/blueled'):
+-                self.struct['dtb_settings']['settings']['heartbeat']['hidden'] = 'true'
++            if not os.path.exists('/sys/firmware/devicetree/base/gpioleds/sys_led'):
++                self.struct['dtb_settings']['settings']['sys_led']['hidden'] = 'true'
++            else:
++                if 'hidden' in self.struct['dtb_settings']['settings']['sys_led']:
++                    del self.struct['dtb_settings']['settings']['sys_led']['hidden']
++                self.fill_values_by_xml(self.struct['dtb_settings']['settings']['sys_led'], 'sys_led')
++
++            if not os.path.exists('/sys/firmware/devicetree/base/gpioleds/red_led'):
++                self.struct['dtb_settings']['settings']['red_led']['hidden'] = 'true'
+             else:
+-                if 'hidden' in self.struct['dtb_settings']['settings']['heartbeat']:
+-                    del self.struct['dtb_settings']['settings']['heartbeat']['hidden']
+-                self.fill_values_by_xml(self.struct['dtb_settings']['settings']['heartbeat'], 'heartbeat')
++                if 'hidden' in self.struct['dtb_settings']['settings']['red_led']:
++                    del self.struct['dtb_settings']['settings']['red_led']['hidden']
++                self.fill_values_by_xml(self.struct['dtb_settings']['settings']['red_led'], 'red_led')
+ 
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['emmc'], 'emmc')
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['slowsdio'], 'slowsdio')
+-- 
+2.17.1
+
