@@ -1,0 +1,141 @@
+From 962c52719c012609eaeb66e5a43c5ef725dabc78 Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Sun, 21 Jun 2020 20:44:55 +0200
+Subject: [PATCH] dts: clean up led behaviour Odroid devices: set default led
+ name by Amlogic. Reove default-state property as it is useless when
+ linux,default-trigger is used.
+
+---
+ arch/arm64/boot/dts/amlogic/coreelec_common.dtsi        | 2 ++
+ arch/arm64/boot/dts/amlogic/g12a_s905y2_2g.dts          | 2 --
+ arch/arm64/boot/dts/amlogic/g12b_a311d_khadas_vim3.dts  | 4 ----
+ arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2.dts    | 8 ++------
+ arch/arm64/boot/dts/amlogic/sm1_s905d3_khadas_vim3l.dts | 4 ----
+ arch/arm64/boot/dts/amlogic/sm1_s905x3_odroid_c4.dts    | 8 ++------
+ 6 files changed, 6 insertions(+), 22 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/amlogic/coreelec_common.dtsi b/arch/arm64/boot/dts/amlogic/coreelec_common.dtsi
+index a072d23f791a..970048c09c8f 100644
+--- a/arch/arm64/boot/dts/amlogic/coreelec_common.dtsi
++++ b/arch/arm64/boot/dts/amlogic/coreelec_common.dtsi
+@@ -29,6 +29,8 @@
+ 		/delete-node/ remote_led;
+ 		sys_led {
+ 			/delete-property/ retain-state-suspended;
++			/delete-property/ default-state;
++			linux,default-trigger="default-on";
+ 		};
+ 	};
+ 
+diff --git a/arch/arm64/boot/dts/amlogic/g12a_s905y2_2g.dts b/arch/arm64/boot/dts/amlogic/g12a_s905y2_2g.dts
+index fae30228912b..6f696104981f 100644
+--- a/arch/arm64/boot/dts/amlogic/g12a_s905y2_2g.dts
++++ b/arch/arm64/boot/dts/amlogic/g12a_s905y2_2g.dts
+@@ -4,8 +4,6 @@
+ 	model = "Amlogic";
+ 	coreelec-dt-id = "g12a_s905y2_2g";
+ 
+-	/delete-node/ gpioleds;
+-
+ 	cvbsout {
+ 		status = "disabled";
+ 	};
+diff --git a/arch/arm64/boot/dts/amlogic/g12b_a311d_khadas_vim3.dts b/arch/arm64/boot/dts/amlogic/g12b_a311d_khadas_vim3.dts
+index 98d8538ef6e4..a96e98a9b86a 100644
+--- a/arch/arm64/boot/dts/amlogic/g12b_a311d_khadas_vim3.dts
++++ b/arch/arm64/boot/dts/amlogic/g12b_a311d_khadas_vim3.dts
+@@ -8,17 +8,13 @@
+ 	/delete-node/ memory@00000000;
+ 
+ 	gpioleds {
+-		status = "okay";
+-
+ 		sys_led {
+ 			gpios=<&gpio_ao GPIOAO_4 GPIO_ACTIVE_HIGH>;
+-			linux,default-trigger="default-on";
+ 		};
+ 
+ 		red_led {
+ 			label = "red_red";
+ 			gpios = <&gpio_expander 5 GPIO_ACTIVE_HIGH>;
+-			default-state ="off";
+ 			linux,default-trigger="none";
+ 		};
+ 	};
+diff --git a/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2.dts b/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2.dts
+index 872d3c55e28e..577a611726b8 100644
+--- a/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2.dts
++++ b/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2.dts
+@@ -6,7 +6,6 @@
+ 	coreelec-dt-id = "g12b_s922x_odroid_n2";
+ 
+ 	/delete-node/ memory@00000000;
+-	/delete-node/ gpioleds;
+ 	/delete-node/ bt-dev;
+ 	/delete-node/ wifi;
+ 	/delete-node/ wifi_pwm_conf;
+@@ -46,11 +45,8 @@
+ 		};
+ 	};
+ 
+-	leds {
+-		compatible = "gpio-leds";
+-		blueled {
+-			label = "blue:heartbeat";
+-			gpios = <&gpio_ao GPIOAO_11 GPIO_ACTIVE_HIGH>;
++	gpioleds {
++		sys_led {
+ 			linux,default-trigger = "heartbeat";
+ 		};
+ 	};
+diff --git a/arch/arm64/boot/dts/amlogic/sm1_s905d3_khadas_vim3l.dts b/arch/arm64/boot/dts/amlogic/sm1_s905d3_khadas_vim3l.dts
+index 6f64abf2c064..596f0463e2ab 100644
+--- a/arch/arm64/boot/dts/amlogic/sm1_s905d3_khadas_vim3l.dts
++++ b/arch/arm64/boot/dts/amlogic/sm1_s905d3_khadas_vim3l.dts
+@@ -8,17 +8,13 @@
+ 	/delete-node/ memory@00000000;
+ 
+ 	gpioleds {
+-		status = "okay";
+-
+ 		sys_led {
+ 			gpios=<&gpio_ao GPIOAO_4 GPIO_ACTIVE_HIGH>;
+-			linux,default-trigger="default-on";
+ 		};
+ 
+ 		red_led {
+ 			label = "red_red";
+ 			gpios = <&gpio_expander 5 GPIO_ACTIVE_HIGH>;
+-			default-state ="off";
+ 			linux,default-trigger="none";
+ 		};
+ 	};
+diff --git a/arch/arm64/boot/dts/amlogic/sm1_s905x3_odroid_c4.dts b/arch/arm64/boot/dts/amlogic/sm1_s905x3_odroid_c4.dts
+index ee0d52c3bc3f..422f88e09629 100644
+--- a/arch/arm64/boot/dts/amlogic/sm1_s905x3_odroid_c4.dts
++++ b/arch/arm64/boot/dts/amlogic/sm1_s905x3_odroid_c4.dts
+@@ -6,7 +6,6 @@
+ 	coreelec-dt-id = "sm1_s905x3_odroid_c4";
+ 
+ 	/delete-node/ memory@00000000;
+-	/delete-node/ gpioleds;
+ 	/delete-node/ bt-dev;
+ 	/delete-node/ wifi;
+ 	/delete-node/ wifi_pwm_conf;
+@@ -17,11 +16,8 @@
+ 		avout_mute-gpios = <&gpio_ao GPIOAO_2 GPIO_ACTIVE_HIGH>;
+ 	};
+ 
+-	leds {
+-		compatible = "gpio-leds";
+-		blueled {
+-			label = "blue:heartbeat";
+-			gpios = <&gpio_ao GPIOAO_11 GPIO_ACTIVE_HIGH>;
++	gpioleds {
++		sys_led {
+ 			linux,default-trigger = "heartbeat";
+ 		};
+ 	};
+-- 
+2.17.1
+
