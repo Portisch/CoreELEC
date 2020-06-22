@@ -1,7 +1,7 @@
-From b5b9a2227eebdd96b1c2e0b252c7694b840f8bef Mon Sep 17 00:00:00 2001
+From 3572d6a8aeaaeb99f06d7d74f46c6a832aacfb19 Mon Sep 17 00:00:00 2001
 From: Portisch <hugo.portisch@yahoo.de>
 Date: Wed, 10 Jun 2020 16:12:43 +0200
-Subject: [PATCH 3/4] hardware: add property 'dangerous' for dtb-xml
+Subject: [PATCH 3/5] hardware: add property 'dangerous' for dtb-xml
 
 ---
  language/resource.language.en_gb/strings.po |  4 ++++

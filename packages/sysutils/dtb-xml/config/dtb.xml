@@ -67,6 +67,25 @@
     </red_led_off>
   </red_led>
 
+  <spidev status="off" version="0">
+    <spidev_on name="on">
+      <cmd path="/soc/cbus@ffd00000/spi@13000 status" type="s" >
+        <value>okay</value>
+      </cmd>
+      <cmd path="/soc/cbus@ffd00000/spi@13000/spidev@0 status" type="s" >
+        <value>okay</value>
+      </cmd>
+    </spidev_on>
+    <spidev_off name="off">
+      <cmd path="/soc/cbus@ffd00000/spi@13000 status" type="s" >
+        <value>disabled</value>
+      </cmd>
+      <cmd path="/soc/cbus@ffd00000/spi@13000/spidev@0 status" type="s" >
+        <value>disabled</value>
+      </cmd>
+    </spidev_off>
+  </spidev>
+
   <emmc status="HS200" version="0">
     <high_speed name="HS200,HS400">
       <cmd path="/emmc/emmc caps2" type="s" >

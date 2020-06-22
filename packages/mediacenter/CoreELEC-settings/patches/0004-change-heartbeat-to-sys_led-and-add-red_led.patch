@@ -1,7 +1,7 @@
-From f745d83b4b33266c1cb7571ac53172373282d665 Mon Sep 17 00:00:00 2001
+From 72aaa1b7b1e12a982fe37fbe9df08c93bcd71742 Mon Sep 17 00:00:00 2001
 From: Portisch <hugo.portisch@yahoo.de>
 Date: Sun, 21 Jun 2020 20:52:01 +0200
-Subject: [PATCH 4/4] change heartbeat to sys_led and add red_led
+Subject: [PATCH 4/5] change heartbeat to sys_led and add red_led
 
 ---
  language/resource.language.en_gb/strings.po |  8 ++++--
