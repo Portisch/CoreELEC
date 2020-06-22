@@ -1,0 +1,44 @@
+From 2e632168a15e8cd6630134eac766fe7410df7011 Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Mon, 22 Jun 2020 09:24:59 +0200
+Subject: [PATCH 7/7] hardware: adjust location for temporary file
+ 'bl301_injected'
+
+---
+ src/resources/lib/modules/hardware.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/resources/lib/modules/hardware.py b/src/resources/lib/modules/hardware.py
+index 0715049..b4ce399 100644
+--- a/src/resources/lib/modules/hardware.py
++++ b/src/resources/lib/modules/hardware.py
+@@ -448,7 +448,7 @@ class hardware:
+             else:
+                 if 'hidden' in self.struct['power']['settings']['inject_bl301']:
+                     del self.struct['power']['settings']['inject_bl301']['hidden']
+-                if os.path.exists('/tmp/bl301_injected'):
++                if os.path.exists('/run/bl301_injected'):
+                     self.struct['power']['settings']['inject_bl301']['value'] = '1'
+                 else:
+                     self.struct['power']['settings']['inject_bl301']['value'] = '0'
+@@ -632,7 +632,7 @@ class hardware:
+ 
+                   if IBL_Code == 0:
+                     self.struct['power']['settings']['inject_bl301']['value'] = '1'
+-                    subprocess.call("touch /tmp/bl301_injected", shell=True)
++                    subprocess.call("touch /run/bl301_injected", shell=True)
+                     self.load_values()
+                     response = xbmcDialog.ok(self.oe._(33412).encode('utf-8'), self.oe._(33417).encode('utf-8'))
+                   elif IBL_Code == 1:
+@@ -659,7 +659,7 @@ class hardware:
+                                 with open('/dev/bootloader', 'wb') as fw:
+                                     fw.write(fr.read())
+                             self.struct['power']['settings']['inject_bl301']['value'] = '0'
+-                            subprocess.call("rm -rf /tmp/bl301_injected", shell=True)
++                            subprocess.call("rm -rf /run/bl301_injected", shell=True)
+                             self.load_values()
+                             response = xbmcDialog.ok(self.oe._(33412).encode('utf-8'), self.oe._(33422).encode('utf-8'))
+ 
+-- 
+2.17.1
+
