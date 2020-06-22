@@ -190,11 +190,10 @@ function migrate_dtb_to_xml() {
 #
 # * Check if the option in BOOT_ROOT dtb.xml does include
 #   commands at all
-# * Check if one single option does apply for dtb.img
+# * Check if the option in BOOT_ROOT dtb.xml commands are
+#   different and update dtb.img if needed
 # * If dtb.img path is not found set the option to
-#   'not applicable'
-# * If dtb.img path is found but no valid option got
-#   found set the option to 'migrated'
+#   'migrated' as not applicable
 function update_dtb_by_dtb_xml() {
   root_nodes=$(xmlstarlet sel -t -m '/*/*' -v "name()" -n $xml_file)
 
@@ -211,11 +210,10 @@ function update_dtb_by_dtb_xml() {
     cmd_count=$(xmlstarlet sel -t -c "count(//$node/node()[@name='$node_status']/cmd)" $xml_file)
 
     if [ "$cmd_count" == 0 ]; then
-      log " no cmd for node status found"
+      log " no cmd for node status '$node_status' found"
       continue
     fi
 
-    changed=0
     # check all commands for this current node of BOOT_ROOT dtb.xml if all commands are equal to dtb.img
     for cnt in $(seq 1 $cmd_count); do
       cmd_path=$(xmlstarlet sel -t -v "//$node/node()[@name='$node_status']/cmd[$cnt]/@path" $xml_file)
@@ -229,58 +227,17 @@ function update_dtb_by_dtb_xml() {
         cmd_value="${cmd_value//\"}"
         # check if dtb.img value does match with current BOOT_ROOT dtb.xml status
         if [ "$act_value" != "$cmd_value" ]; then
-          changed=1
-          break
+          eval $cmd
+          log " cmd[$cnt]: changed, $cmd_path: '$act_value' -> '$cmd_value', result: $?"
         else
           log " cmd[$cnt]: unchanged, $cmd_path: '$cmd_value' == '$act_value'"
         fi
       else
         log " not applicable"
         xmlstarlet ed -L -u "//$node/@status" -v "migrated" $xml_file
-        break
+        continue 2
       fi
     done
-
-    # if dtb.img value is changed to current node of BOOT_ROOT dtb.xml
-    if [ "$changed" == 1 ]; then
-      option_nodes=$(xmlstarlet sel -t -m "//$node/*" -v "name()" -n $xml_file)
-      name_option_available=0
-
-      # check all options of the node to find correct option to match dtb.img value
-      for option in $option_nodes; do
-        cmd_count=$(xmlstarlet sel -t -c "count(//$node/$option/cmd)" $xml_file)
-        for cnt in $(seq 1 $cmd_count); do
-          cmd_path=$(xmlstarlet sel -t -v "//$node/$option/cmd[$cnt]/@path" $xml_file)
-          cmd_type=$(xmlstarlet sel -t -m "//$node/$option/cmd[$cnt]" -v "concat('-t ', @type)" $xml_file)
-          act_value=$(fdtget $cmd_type $dtb_file $cmd_path 2>/dev/null)
-          if [ "$?" == 0 ]; then
-            cmd_value=$(xmlstarlet sel -t -m "//$node/$option" -m "cmd[$cnt]/value" -v "concat(.,' ')" $xml_file)
-            [ -n "$cmd_value" ] && cmd_value=${cmd_value::-1}
-            if [ "$act_value" != "$cmd_value" ]; then
-              continue 2
-            fi
-          else
-            continue 2
-          fi
-        done
-        # current option in BOOT_ROOT dtb.xml does match the dtb.img value, use it
-        name_option_available=1
-        break
-      done
-
-      # if current option of the node in BOOT_ROOT dtb.xml does fit apply new value to dtb.img
-      if [ "$name_option_available" == 1 ]; then
-        eval $cmd
-        log " cmd[$cnt]: changed, $cmd_path: '$act_value' -> '$cmd_value', result: $?"
-        log " cmd[$cnt]: $cmd"
-      # no matching option of the node in BOOT_ROOT dtb.xml was found, set the option to 'migrated'
-      else
-        xmlstarlet ed -L -s "//$node" -t elem -n "${node}_migrated" $xml_file
-        xmlstarlet ed -L -u "//$node/@status" -v "migrated" $xml_file
-        xmlstarlet ed -L -i "//${node}_migrated" -t attr -n "name" -v "migrated" $xml_file
-        log " option not applicable by default dtb.xml, migrate to '${node}_migrated'"
-      fi
-    fi
   done
   log "------------------------------------------"
   log ""
