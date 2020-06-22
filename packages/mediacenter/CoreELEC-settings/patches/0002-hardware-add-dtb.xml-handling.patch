@@ -1,7 +1,7 @@
 From dafd579c847b8a344596a9553ac3e6b63a0e90cf Mon Sep 17 00:00:00 2001
 From: Portisch <hugo.portisch@yahoo.de>
 Date: Wed, 22 Apr 2020 12:11:18 +0200
-Subject: [PATCH 2/5] hardware: add dtb.xml handling
+Subject: [PATCH 2/7] hardware: add dtb.xml handling
 
 ---
  language/resource.language.en_gb/strings.po |  28 +++++

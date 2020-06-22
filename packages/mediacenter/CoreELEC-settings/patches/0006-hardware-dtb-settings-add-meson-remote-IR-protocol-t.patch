@@ -1,75 +1,83 @@
-From 94fb81208f0d3e441b8b06e45d53db0bd0ae6b1c Mon Sep 17 00:00:00 2001
+From 8cd202b69b92ca4c4c65d1a98a95f1e4c4c50f48 Mon Sep 17 00:00:00 2001
 From: Portisch <hugo.portisch@yahoo.de>
-Date: Mon, 22 Jun 2020 07:56:36 +0200
-Subject: [PATCH 5/7] hardware: dtb-settings: add SPI Interface
+Date: Mon, 22 Jun 2020 09:23:37 +0200
+Subject: [PATCH 6/7] hardware: dtb-settings: add meson-remote IR protocol type
 
 ---
  language/resource.language.en_gb/strings.po |  8 ++++++++
- src/resources/lib/modules/hardware.py       | 13 +++++++++++--
- 2 files changed, 19 insertions(+), 2 deletions(-)
+ src/resources/lib/modules/hardware.py       | 21 +++++++++++++++++++--
+ 2 files changed, 27 insertions(+), 2 deletions(-)
 
 diff --git a/language/resource.language.en_gb/strings.po b/language/resource.language.en_gb/strings.po
-index 05cf10d..8a67060 100644
+index 8a67060..b2772ec 100644
 --- a/language/resource.language.en_gb/strings.po
 +++ b/language/resource.language.en_gb/strings.po
-@@ -356,6 +356,10 @@ msgctxt "#802"
- msgid "Configure WiFi SoC SDIO speed"
+@@ -360,6 +360,10 @@ msgctxt "#803"
+ msgid "Enable/Disable SPI interface"
  msgstr ""
  
-+msgctxt "#803"
-+msgid "Enable/Disable SPI interface"
++msgctxt "#804"
++msgid "Choose IR protocol type for meson-remote"
 +msgstr ""
 +
  msgctxt "#32001"
  msgid "Services"
  msgstr ""
-@@ -1200,6 +1204,10 @@ msgctxt "#32424"
- msgid "Red LED"
+@@ -1208,6 +1212,10 @@ msgctxt "#32425"
+ msgid "SPI Interface"
  msgstr ""
  
-+msgctxt "#32425"
-+msgid "SPI Interface"
++msgctxt "#32426"
++msgid "IR Protocol Type"
 +msgstr ""
 +
  msgctxt "#32430"
  msgid "Device OSD Name"
  msgstr ""
 diff --git a/src/resources/lib/modules/hardware.py b/src/resources/lib/modules/hardware.py
-index 814ee4c..74613b6 100644
+index 74613b6..0715049 100644
 --- a/src/resources/lib/modules/hardware.py
 +++ b/src/resources/lib/modules/hardware.py
-@@ -176,8 +176,16 @@ class hardware:
+@@ -184,8 +184,16 @@ class hardware:
                              'action': 'set_value_xml',
                              'type': 'multivalue',
                              },
 -                        'emmc': {
-+                        'spidev': {
-                             'order': 3,
-+                            'name': 32425,
++                        'remote_type': {
+                             'order': 4,
++                            'name': 32426,
 +                            'InfoText': 803,
 +                            'value': '',
 +                            'action': 'set_value_xml',
 +                            'type': 'multivalue',
 +                            },
 +                        'emmc': {
-+                            'order': 4,
++                            'order': 5,
                              'name': 32422,
                              'InfoText': 801,
                              'value': '',
-@@ -186,7 +194,7 @@ class hardware:
+@@ -194,7 +202,7 @@ class hardware:
                              'dangerous': True,
                              },
                          'slowsdio': {
--                            'order': 4,
-+                            'order': 5,
+-                            'order': 5,
++                            'order': 6,
                              'name': 32423,
                              'InfoText': 802,
                              'value': '',
-@@ -413,6 +421,7 @@ class hardware:
-                     del self.struct['dtb_settings']['settings']['red_led']['hidden']
+@@ -422,6 +430,15 @@ class hardware:
                  self.fill_values_by_xml(self.struct['dtb_settings']['settings']['red_led'], 'red_led')
  
-+            self.fill_values_by_xml(self.struct['dtb_settings']['settings']['spidev'], 'spidev')
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['spidev'], 'spidev')
++
++            if not os.path.exists('/run/use-meson-remote'):
++                self.struct['dtb_settings']['settings']['remote_type']['hidden'] = 'true'
++                self.struct['dtb_settings']['settings']['remote_type']['value'] = '1'
++            else:
++                if 'hidden' in self.struct['dtb_settings']['settings']['remote_type']:
++                    del self.struct['dtb_settings']['settings']['remote_type']['hidden']
++                self.fill_values_by_xml(self.struct['dtb_settings']['settings']['remote_type'], 'remote_type')
++
              self.fill_values_by_xml(self.struct['dtb_settings']['settings']['emmc'], 'emmc')
              self.fill_values_by_xml(self.struct['dtb_settings']['settings']['slowsdio'], 'slowsdio')
  
