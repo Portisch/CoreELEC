@@ -236,6 +236,8 @@ function update_dtb_by_dtb_xml() {
         fi
       else
         log " not applicable"
+        xmlstarlet ed -L -u "//$node/@status" -v "migrated" $xml_file
+        break
       fi
     done
 
