@@ -19,8 +19,6 @@
 verbose=0
 changed=0
 migrate=0
-update_migrated=0
-update_node=''
 SYSTEM_ROOT=''
 BOOT_ROOT='/flash'
 
@@ -37,11 +35,6 @@ while [ $# -ne 0 ]; do
         ;;
       -m)
         migrate=1
-        ;;
-      -u)
-        shift
-        update_migrated=1
-        update_node="$1"
         ;;
       *)
         echo "Unknown option: '$arg'"
@@ -68,17 +61,8 @@ function log() {
 # Update a specified option node if value in dtb.img
 # become applicable by parameter: $update_node
 function update_migrated_xml() {
-  log ""
-  log "Update migrated dtb.xml from dtb.img"
-  log ""
-
-  node_status=$(xmlstarlet sel -t -v "//$update_node/@status" $xml_file)
-  if [ -z "$node_status" ]; then
-    log "update_migrated_xml: no node specified"
-    return
-  fi
-  log "------------------------------------------"
-  log " node:  $update_node, status: '$node_status'"
+  update_node="$1"
+  log " try to update migrated node '$update_node' by dtb.img"
   option_nodes=$(xmlstarlet sel -t -m "//$update_node/*" -v "name()" -n $xml_file)
 
   # check all options for specified migrated option node
@@ -110,12 +94,13 @@ function update_migrated_xml() {
     xmlstarlet ed -L -d "//$update_node/${update_node}_migrated" $xml_file
     changed=1
     log " option status changed from '$node_status' to '$name_option'"
+    node_status="$name_option"
+    break
   done
   # option is still not applicable
   if [ "$changed" == 0 ]; then
     log " option status stay unchanged at '$node_status'"
   fi
-  log "------------------------------------------"
   log ""
 }
 
@@ -205,6 +190,11 @@ function update_dtb_by_dtb_xml() {
     node_status=$(xmlstarlet sel -t -v "//$node/@status" $xml_file)
     log " status: $node_status"
     log ""
+
+    # check if node is 'migrated' and update if possible
+    if [ "$node_status" == "migrated" ]; then
+      update_migrated_xml $node
+    fi
 
     # check if node does include commands to be executed
     cmd_count=$(xmlstarlet sel -t -c "count(//$node/node()[@name='$node_status']/cmd)" $xml_file)
@@ -363,8 +353,6 @@ fi
 # handle script parameter
 if [ "$migrate" == 1 ]; then
   migrate_dtb_to_xml
-elif [ "$update_migrated" == 1 ]; then
-  update_migrated_xml
 else
   update_dtb_xml
   update_dtb_by_dtb_xml
