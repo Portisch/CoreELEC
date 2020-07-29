@@ -1,0 +1,79 @@
+From 4fe607ef12f5f2031dbab4abd5c5fb554ace22fe Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Thu, 23 Jul 2020 13:17:12 +0200
+Subject: [PATCH 4/4] hardware: dtb-settings: add DVB GPIO support
+
+---
+ language/resource.language.en_gb/strings.po |  8 ++++++++
+ src/resources/lib/modules/hardware.py       | 14 ++++++++++++--
+ 2 files changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/language/resource.language.en_gb/strings.po b/language/resource.language.en_gb/strings.po
+index ed0b2e6..b7d56fd 100644
+--- a/language/resource.language.en_gb/strings.po
++++ b/language/resource.language.en_gb/strings.po
+@@ -371,6 +371,10 @@ msgctxt "#903"
+ msgid "Choose IR protocol type for meson-remote"
+ msgstr ""
+ 
++msgctxt "#904"
++msgid "Configure DVB GPIO support"
++msgstr ""
++
+ msgctxt "#32001"
+ msgid "Services"
+ msgstr ""
+@@ -1258,6 +1262,10 @@ msgctxt "#32434"
+ msgid "Active route"
+ msgstr ""
+ 
++msgctxt "#32435"
++msgid "DVB GPIO Support"
++msgstr ""
++
+ msgctxt "#33410"
+ msgid "Warning!"
+ msgstr ""
+diff --git a/src/resources/lib/modules/hardware.py b/src/resources/lib/modules/hardware.py
+index e9b76be..9a2da68 100644
+--- a/src/resources/lib/modules/hardware.py
++++ b/src/resources/lib/modules/hardware.py
+@@ -240,8 +240,17 @@ class hardware:
+                             'action': 'set_value_xml',
+                             'type': 'multivalue',
+                             },
+-                        'emmc': {
++                        'dvb': {
+                             'order': 6,
++                            'name': 32435,
++                            'InfoText': 904,
++                            'value': '',
++                            'xml_node': 'dvb',
++                            'action': 'set_value_xml',
++                            'type': 'multivalue',
++                            },
++                        'emmc': {
++                            'order': 7,
+                             'name': 32425,
+                             'InfoText': 900,
+                             'value': '',
+@@ -251,7 +260,7 @@ class hardware:
+                             'dangerous': True,
+                             },
+                         'slowsdio': {
+-                            'order': 7,
++                            'order': 8,
+                             'name': 32426,
+                             'InfoText': 901,
+                             'value': '',
+@@ -510,6 +519,7 @@ class hardware:
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['red_led'])
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['spicc0'])
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['spicc1'])
++            self.fill_values_by_xml(self.struct['dtb_settings']['settings']['dvb'])
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['emmc'])
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['slowsdio'])
+ 
+-- 
+2.17.1
+

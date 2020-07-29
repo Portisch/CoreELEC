@@ -1,0 +1,89 @@
+From cf7310132b0cac2e091acd9647b966371aecbd7a Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Mon, 22 Jun 2020 07:56:36 +0200
+Subject: [PATCH 2/4] hardware: dtb-settings: add SPI Interface
+
+---
+ language/resource.language.en_gb/strings.po |  8 +++++++
+ src/resources/lib/modules/hardware.py       | 24 +++++++++++++++++++--
+ 2 files changed, 30 insertions(+), 2 deletions(-)
+
+diff --git a/language/resource.language.en_gb/strings.po b/language/resource.language.en_gb/strings.po
+index 78ae48a..e63d52c 100644
+--- a/language/resource.language.en_gb/strings.po
++++ b/language/resource.language.en_gb/strings.po
+@@ -363,6 +363,10 @@ msgctxt "#901"
+ msgid "Configure WiFi SoC SDIO speed"
+ msgstr ""
+ 
++msgctxt "#902"
++msgid "Enable/Disable SPI interface"
++msgstr ""
++
+ msgctxt "#32001"
+ msgid "Services"
+ msgstr ""
+@@ -1222,6 +1226,10 @@ msgctxt "#32427"
+ msgid "Red LED"
+ msgstr ""
+ 
++msgctxt "#32428"
++msgid "SPI Interface"
++msgstr ""
++
+ msgctxt "#32430"
+ msgid "Device OSD Name"
+ msgstr ""
+diff --git a/src/resources/lib/modules/hardware.py b/src/resources/lib/modules/hardware.py
+index c004733..d40a2ab 100644
+--- a/src/resources/lib/modules/hardware.py
++++ b/src/resources/lib/modules/hardware.py
+@@ -213,8 +213,26 @@ class hardware:
+                             'action': 'set_value_xml',
+                             'type': 'multivalue',
+                             },
+-                        'emmc': {
++                        'spicc0': {
+                             'order': 3,
++                            'name': 32428,
++                            'InfoText': 902,
++                            'value': '',
++                            'xml_node': 'spicc0',
++                            'action': 'set_value_xml',
++                            'type': 'multivalue',
++                            },
++                        'spicc1': {
++                            'order': 4,
++                            'name': 32428,
++                            'InfoText': 902,
++                            'value': '',
++                            'xml_node': 'spicc1',
++                            'action': 'set_value_xml',
++                            'type': 'multivalue',
++                            },
++                        'emmc': {
++                            'order': 5,
+                             'name': 32425,
+                             'InfoText': 900,
+                             'value': '',
+@@ -224,7 +242,7 @@ class hardware:
+                             'dangerous': True,
+                             },
+                         'slowsdio': {
+-                            'order': 4,
++                            'order': 6,
+                             'name': 32426,
+                             'InfoText': 901,
+                             'value': '',
+@@ -474,6 +492,8 @@ class hardware:
+ 
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['sys_led'])
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['red_led'])
++            self.fill_values_by_xml(self.struct['dtb_settings']['settings']['spicc0'])
++            self.fill_values_by_xml(self.struct['dtb_settings']['settings']['spicc1'])
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['emmc'])
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['slowsdio'])
+ 
+-- 
+2.17.1
+

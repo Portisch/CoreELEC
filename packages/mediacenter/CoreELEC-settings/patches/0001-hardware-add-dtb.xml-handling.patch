@@ -1,0 +1,486 @@
+From e61a882b9529dbde798e8580a42938b7df506e0a Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Wed, 22 Apr 2020 12:11:18 +0200
+Subject: [PATCH 1/4] hardware: add dtb.xml handling
+
+---
+ language/resource.language.en_gb/strings.po |  34 ++++-
+ src/oe.py                                   | 101 +++++++++++++
+ src/resources/lib/modules/hardware.py       | 155 +++++++++++++-------
+ 3 files changed, 239 insertions(+), 51 deletions(-)
+
+diff --git a/language/resource.language.en_gb/strings.po b/language/resource.language.en_gb/strings.po
+index 30c032a..78ae48a 100644
+--- a/language/resource.language.en_gb/strings.po
++++ b/language/resource.language.en_gb/strings.po
+@@ -313,7 +313,7 @@ msgid "Enable/Disable USB Power when device is off/suspend"
+ msgstr ""
+ 
+ msgctxt "#789"
+-msgid "Enable/Disable device heartbeat LED"
++msgid "Change device LED behavior"
+ msgstr ""
+ 
+ msgctxt "#790"
+@@ -354,6 +354,13 @@ msgstr ""
+ 
+ msgctxt "#799"
+ msgid "Time in minutes/hours until the HDD should enter suspend mode"
++
++msgctxt "#900"
++msgid "Configure eMMC speed mode"
++msgstr ""
++
++msgctxt "#901"
++msgid "Configure WiFi SoC SDIO speed"
+ msgstr ""
+ 
+ msgctxt "#32001"
+@@ -1152,6 +1159,10 @@ msgctxt "#32405"
+ msgid "HDD"
+ msgstr ""
+ 
++msgctxt "#32406"
++msgid "Device Tree"
++msgstr ""
++
+ msgctxt "#32410"
+ msgid "Fan Mode"
+ msgstr ""
+@@ -1177,7 +1188,7 @@ msgid "USB Power"
+ msgstr ""
+ 
+ msgctxt "#32419"
+-msgid "Heartbeat LED"
++msgid "System LED"
+ msgstr ""
+ 
+ msgctxt "#32420"
+@@ -1198,6 +1209,17 @@ msgstr ""
+ 
+ msgctxt "#32424"
+ msgid "Idle Time"
++
++msgctxt "#32425"
++msgid "eMMC Speed Mode"
++msgstr ""
++
++msgctxt "#32426"
++msgid "WiFi SoC SDIO Speed"
++msgstr ""
++
++msgctxt "#32427"
++msgid "Red LED"
+ msgstr ""
+ 
+ msgctxt "#32430"
+@@ -1271,3 +1293,11 @@ msgstr ""
+ msgctxt "#33422"
+ msgid "Finished remove of the BL301 on internal eMMC.[CR]A reboot is now required!"
+ msgstr ""
++
++msgctxt "#33423"
++msgid "Finished update of /flash/dtb.img.[CR]A reboot is now required!"
++msgstr ""
++
++msgctxt "#33424"
++msgid "[COLOR red]Are you sure to change this value?[/COLOR][CR]Please enter confirmation code '%s'"
++msgstr ""
+diff --git a/src/oe.py b/src/oe.py
+index 8a6735e..17a8d57 100644
+--- a/src/oe.py
++++ b/src/oe.py
+@@ -24,6 +24,7 @@ import shutil
+ import hashlib, binascii
+ 
+ from xml.dom import minidom
++import xml.etree.ElementTree as ET
+ 
+ __author__ = 'CoreELEC'
+ __scriptid__ = 'service.coreelec.settings'
+@@ -420,6 +421,102 @@ def set_config_ini(var, val="\'\'"):
+     f.close()
+     ret = subprocess.call("mount -o remount,ro /flash", shell=True)
+ 
++def set_dtbxml_default(node=''):
++    if node == '':
++        subprocess.call("/usr/lib/coreelec/dtb-xml -m", shell=True)
++        return 0
++    else:
++        tree, root = open_dtbxml_xml(dtbxml_default)
++        if tree == None or root == None:
++            return -1
++        node = root.findall("./%s" % node)
++        if len(node) == 0:
++            return -1
++        tree, root = open_dtbxml_xml(dtbxml)
++        if tree == None or root == None:
++            return -1
++        root.append(node[0])
++        subprocess.call("mount -o remount,rw /flash", shell=True)
++        tree.write(dtbxml, encoding='utf-8', xml_declaration=True)
++        global dtb_tree, dtb_root
++        dtb_tree = None
++        dtb_root = None
++        subprocess.call("mount -o remount,ro /flash", shell=True)
++        return 0
++
++def open_dtbxml_xml(xml, retry='yes'):
++    try:
++        global dtb_tree, dtb_root
++        if not dtb_tree == None and not dtb_root == None:
++            return dtb_tree, dtb_root
++        if os.path.isfile(xml):
++            dtb_tree = ET.parse(xml)
++        else:
++            subprocess.call("/usr/lib/coreelec/dtb-xml -m", shell=True)
++            dtb_tree = ET.parse(xml)
++        if dtb_tree == None:
++            if set_dtbxml_default() == 0 and retry == 'yes':
++                return open_dtbxml_xml(xml, 'no')
++            else:
++                return None
++        dtb_root = dtb_tree.getroot()
++        if dtb_root == None or dtb_root.tag != 'dtb-settings':
++            if set_dtbxml_default() == 0 and retry == 'yes':
++                return open_dtbxml_xml(xml, 'no')
++            else:
++                return None
++    except Exception, e:
++        print('oe::open_dtbxml_xml', 'ERROR: (' + repr(e) + ')')
++    return dtb_tree, dtb_root
++
++def get_dtbxml_multivalues(var, retry='yes'):
++    multivalue = []
++    tree, root = open_dtbxml_xml(dtbxml)
++    if tree == None or root == None:
++        return multivalue
++    node = root.findall("./%s" % var)
++    if len(node) == 0:
++        if set_dtbxml_default(var) == 0 and retry == 'yes':
++            return get_dtbxml_multivalues(var, 'no')
++        else:
++            return None
++    for sub_node in node[0].getchildren():
++        multivalue.append(sub_node.get('name'))
++    return multivalue
++
++def get_dtbxml_value(var, retry='yes'):
++    tree, root = open_dtbxml_xml(dtbxml)
++    if tree == None or root == None:
++        return None
++    node = root.findall("./%s" % var)
++    if len(node) == 0:
++        if set_dtbxml_default(var) == 0 and retry == 'yes':
++            return get_dtbxml_value(var, 'no')
++        else:
++            return None
++    status = node[0].get('status')
++    if len(status) == 0 and retry == 'yes':
++        return get_dtbxml_value(var, 'no')
++    return status
++
++def set_dtbxml_value(var, value, retry='yes'):
++    tree, root = open_dtbxml_xml(dtbxml)
++    if tree == None or root == None:
++        return
++    node = root.findall("./%s" % var)
++    if len(node) == 0:
++        if set_dtbxml_default(var) == 0 and retry == 'yes':
++            return set_dtbxml_value(var, value, 'no')
++        else:
++            return None
++    node[0].set('status', value)
++    subprocess.call("mount -o remount,rw /flash", shell=True)
++    tree.write(dtbxml, encoding='utf-8', xml_declaration=True)
++    global dtb_tree, dtb_root
++    dtb_tree = None
++    dtb_root = None
++    subprocess.call("mount -o remount,ro /flash", shell=True)
++
+ def url_quote(var):
+     return urllib2.quote(var, safe="")
+ 
+@@ -991,6 +1088,10 @@ else:
+   RPI_CPU_VER = ''
+ 
+ configini = '/flash/config.ini'
++dtbxml = '/flash/dtb.xml'
++dtbxml_default = '/usr/share/bootloader/dtb.xml'
++dtb_tree = None
++dtb_root = None
+ BOOT_STATUS = load_file('/storage/.config/boot.status')
+ BOOT_HINT = load_file('/storage/.config/boot.hint')
+ 
+diff --git a/src/resources/lib/modules/hardware.py b/src/resources/lib/modules/hardware.py
+index 5ca5b75..c004733 100644
+--- a/src/resources/lib/modules/hardware.py
++++ b/src/resources/lib/modules/hardware.py
+@@ -10,6 +10,7 @@ import oeWindows
+ import threading
+ import subprocess
+ import shutil
++import random
+ 
+ # CEC Wake Up flags from u-boot(bl301)
+ CEC_FUNC_MASK = 0
+@@ -20,6 +21,7 @@ ACTIVE_SOURCE_MASK = 6
+ class hardware:
+     ENABLED = False
+     need_inject = False
++    check_for_reboot = False
+     menu = {'8': {
+         'name': 32004,
+         'menuLoader': 'load_menu',
+@@ -161,16 +163,8 @@ class hardware:
+                             'action': 'set_bl301',
+                             'type': 'bool',
+                             },
+-                        'heartbeat': {
+-                            'order': 2,
+-                            'name': 32419,
+-                            'InfoText': 789,
+-                            'value': '0',
+-                            'action': 'set_heartbeat',
+-                            'type': 'bool',
+-                            },
+                         'remote_power': {
+-                            'order': 3,
++                            'order': 2,
+                             'name': 32416,
+                             'InfoText': 786,
+                             'value': '',
+@@ -179,7 +173,7 @@ class hardware:
+                             'values': ['Unknown'],
+                             },
+                         'wol': {
+-                            'order': 4,
++                            'order': 3,
+                             'name': 32417,
+                             'InfoText': 787,
+                             'value': '0',
+@@ -187,7 +181,7 @@ class hardware:
+                             'type': 'bool',
+                             },
+                         'usbpower': {
+-                            'order': 5,
++                            'order': 4,
+                             'name': 32418,
+                             'InfoText': 788,
+                             'value': '0',
+@@ -196,8 +190,52 @@ class hardware:
+                             },
+                         },
+                     },
+-                'cec': {
++                'dtb_settings': {
+                     'order': 3,
++                    'name': 32406,
++                    'not_supported': [],
++                    'settings': {
++                        'sys_led': {
++                            'order': 1,
++                            'name': 32419,
++                            'InfoText': 789,
++                            'value': '',
++                            'xml_node': 'sys_led',
++                            'action': 'set_value_xml',
++                            'type': 'multivalue',
++                            },
++                        'red_led': {
++                            'order': 2,
++                            'name': 32427,
++                            'InfoText': 789,
++                            'value': '',
++                            'xml_node': 'red_led',
++                            'action': 'set_value_xml',
++                            'type': 'multivalue',
++                            },
++                        'emmc': {
++                            'order': 3,
++                            'name': 32425,
++                            'InfoText': 900,
++                            'value': '',
++                            'xml_node': 'emmc',
++                            'action': 'set_value_xml',
++                            'type': 'multivalue',
++                            'dangerous': True,
++                            },
++                        'slowsdio': {
++                            'order': 4,
++                            'name': 32426,
++                            'InfoText': 901,
++                            'value': '',
++                            'xml_node': 'slowsdio',
++                            'action': 'set_value_xml',
++                            'type': 'multivalue',
++                            },
++                        },
++                    },
++                'cec': {
++                    'order': 4,
+                     'name': 32404,
+                     'not_supported': [],
+                     'settings': {
+@@ -248,7 +286,7 @@ class hardware:
+                         },
+                     },
+                 'display': {
+-                    'order': 4,
++                    'order': 5,
+                     'name': 32402,
+                     'not_supported': [],
+                     'settings': {
+@@ -263,7 +301,7 @@ class hardware:
+                         },
+                     },
+                 'performance': {
+-                    'order': 5,
++                    'order': 6,
+                     'name': 32403,
+                     'not_supported': [],
+                     'settings': {
+@@ -279,7 +317,7 @@ class hardware:
+                         },
+                     },
+                 'hdd': {
+-                    'order': 6,
++                    'order': 7,
+                     'name': 32405,
+                     'not_supported': [],
+                     'settings': {
+@@ -346,18 +384,20 @@ class hardware:
+ 
+     def exit(self):
+         self.oe.dbg_log('hardware::exit', 'enter_function', 0)
++        self.oe.set_busy(1)
++        suppress_dialog = False
++        xbmcDialog = xbmcgui.Dialog()
+         if self.struct['power']['settings']['inject_bl301']['value'] == '1':
+-            self.oe.set_busy(1)
+-            xbmcDialog = xbmcgui.Dialog()
+-
+             if hardware.need_inject:
+                 IBL_Code = self.run_inject_bl301('-Y')
+ 
+                 if IBL_Code == 0:
+                     self.load_values()
+                     response = xbmcDialog.ok(self.oe._(33412).encode('utf-8'), self.oe._(33417).encode('utf-8'))
++                    suppress_dialog = True
+                 elif IBL_Code == 1:
+                     response = xbmcDialog.ok(self.oe._(33413).encode('utf-8'), self.oe._(33420).encode('utf-8'))
++                    suppress_dialog = True
+                 elif IBL_Code == (-2 & 0xff):
+                     response = xbmcDialog.ok(self.oe._(33414).encode('utf-8'), self.oe._(33419).encode('utf-8'))
+                 else:
+@@ -366,9 +406,14 @@ class hardware:
+                 if IBL_Code != 0:
+                     self.oe.dbg_log('hardware::set_bl301', 'ERROR: (%d)' % IBL_Code, 4)
+ 
+-                hardware.need_inject = False
++        if hardware.check_for_reboot:
++            ret = subprocess.call("/usr/lib/coreelec/dtb-xml", shell=True)
++            if ret == 1 and not suppress_dialog:
++                response = xbmcDialog.ok(self.oe._(33412).encode('utf-8'), self.oe._(33423).encode('utf-8'))
+ 
+-            self.oe.set_busy(0)
++        hardware.need_inject = False
++        hardware.check_for_reboot = False
++        self.oe.set_busy(0)
+         self.oe.dbg_log('hardware::exit', 'exit_function', 0)
+         pass
+ 
+@@ -427,17 +472,10 @@ class hardware:
+                 if not value is None:
+                     self.struct['fan']['settings']['fan_level']['value'] = value
+ 
+-            if not os.path.exists('/sys/firmware/devicetree/base/leds/blueled'):
+-                self.struct['power']['settings']['heartbeat']['hidden'] = 'true'
+-            else:
+-                if 'hidden' in self.struct['power']['settings']['heartbeat']:
+-                    del self.struct['power']['settings']['heartbeat']['hidden']
+-                heartbeat = self.oe.get_config_ini('heartbeat', '1')
+-                if heartbeat == '' or "1" in heartbeat:
+-                    self.struct['power']['settings']['heartbeat']['value'] = '1'
+-                if "0" in heartbeat:
+-                    self.struct['power']['settings']['heartbeat']['value'] = '0'
+-
++            self.fill_values_by_xml(self.struct['dtb_settings']['settings']['sys_led'])
++            self.fill_values_by_xml(self.struct['dtb_settings']['settings']['red_led'])
++            self.fill_values_by_xml(self.struct['dtb_settings']['settings']['emmc'])
++            self.fill_values_by_xml(self.struct['dtb_settings']['settings']['slowsdio'])
+ 
+             if not self.inject_check_compatibility():
+                 self.struct['power']['settings']['inject_bl301']['hidden'] = 'true'
+@@ -725,24 +763,6 @@ class hardware:
+         finally:
+             self.oe.set_busy(0)
+ 
+-    def set_heartbeat(self, listItem=None):
+-        try:
+-            self.oe.dbg_log('hardware::set_heartbeat', 'enter_function', 0)
+-            self.oe.set_busy(1)
+-            if not listItem == None:
+-                self.set_value(listItem)
+-
+-                if self.struct['power']['settings']['heartbeat']['value'] == '1':
+-                    self.oe.set_config_ini("heartbeat", "1")
+-                else:
+-                    self.oe.set_config_ini("heartbeat", "0")
+-
+-            self.oe.dbg_log('hardware::set_heartbeat', 'exit_function', 0)
+-        except Exception, e:
+-            self.oe.dbg_log('hardware::set_heartbeat', 'ERROR: (%s)' % repr(e), 4)
+-        finally:
+-            self.oe.set_busy(0)
+-
+     def set_wol(self, listItem=None):
+         try:
+             self.oe.dbg_log('hardware::set_wol', 'enter_function', 0)
+@@ -875,6 +895,43 @@ class hardware:
+         except Exception, e:
+             self.oe.dbg_log('hardware::load_menu', 'ERROR: (' + repr(e) + ')')
+ 
++    def set_value_xml(self, listItem=None):
++        try:
++            self.oe.dbg_log('hardware::set_value_xml', 'enter_function', 0)
++            self.oe.set_busy(1)
++            if not listItem == None:
++                num = random.randint(1000, 9999)
++                response = str(num)
++                if 'dangerous' in self.struct[listItem.getProperty('category')]['settings'][listItem.getProperty('entry')]:
++                    xbmcDialog = xbmcgui.Dialog()
++                    response = xbmcDialog.input(self.oe._(33424).encode('utf-8') % str(num), type=xbmcgui.INPUT_NUMERIC)
++                if str(num) == response:
++                    self.set_value(listItem)
++                    self.oe.set_dtbxml_value(listItem.getProperty('entry'), listItem.getProperty('value'))
++                    hardware.check_for_reboot = True
++
++            self.oe.dbg_log('hardware::set_value_xml', 'exit_function', 0)
++        except Exception, e:
++            self.oe.dbg_log('hardware::set_value_xml', 'ERROR: (%s)' % repr(e), 4)
++        finally:
++            self.oe.set_busy(0)
++
++    def fill_values_by_xml(self, var):
++        self.oe.dbg_log('hardware::fill_values_by_xml', 'enter_function', 0)
++        values = self.oe.get_dtbxml_multivalues(var['xml_node'])
++        value = self.oe.get_dtbxml_value(var['xml_node'])
++        if not values is None and not value is None:
++            if not value == 'migrated':
++                if 'hidden' in var:
++                    del var['hidden']
++                var['values'] = values
++                var['value'] = value
++            else:
++                var['hidden'] = 'true'
++        else:
++            self.oe.dbg_log('hardware::fill_values_by_xml', '"%s" could not be read from dtb.xml' % var['xml_node'], 0)
++        self.oe.dbg_log('hardware::fill_values_by_xml', 'exit_function', 0)
++
+     def set_value(self, listItem):
+         try:
+             self.oe.dbg_log('hardware::set_value', 'enter_function', 0)
+-- 
+2.17.1
+

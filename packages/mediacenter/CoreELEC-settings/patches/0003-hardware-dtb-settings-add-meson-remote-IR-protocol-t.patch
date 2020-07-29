@@ -1,0 +1,85 @@
+From b03bf7215a070f57af60c4e698a8fa0a3ee46eac Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Mon, 22 Jun 2020 09:23:37 +0200
+Subject: [PATCH 3/4] hardware: dtb-settings: add meson-remote IR protocol type
+
+---
+ language/resource.language.en_gb/strings.po |  8 ++++++++
+ src/resources/lib/modules/hardware.py       | 20 ++++++++++++++++++--
+ 2 files changed, 26 insertions(+), 2 deletions(-)
+
+diff --git a/language/resource.language.en_gb/strings.po b/language/resource.language.en_gb/strings.po
+index e63d52c..ed0b2e6 100644
+--- a/language/resource.language.en_gb/strings.po
++++ b/language/resource.language.en_gb/strings.po
+@@ -367,6 +367,10 @@ msgctxt "#902"
+ msgid "Enable/Disable SPI interface"
+ msgstr ""
+ 
++msgctxt "#903"
++msgid "Choose IR protocol type for meson-remote"
++msgstr ""
++
+ msgctxt "#32001"
+ msgid "Services"
+ msgstr ""
+@@ -1230,6 +1234,10 @@ msgctxt "#32428"
+ msgid "SPI Interface"
+ msgstr ""
+ 
++msgctxt "#32429"
++msgid "IR Protocol Type"
++msgstr ""
++
+ msgctxt "#32430"
+ msgid "Device OSD Name"
+ msgstr ""
+diff --git a/src/resources/lib/modules/hardware.py b/src/resources/lib/modules/hardware.py
+index d40a2ab..e9b76be 100644
+--- a/src/resources/lib/modules/hardware.py
++++ b/src/resources/lib/modules/hardware.py
+@@ -231,8 +231,17 @@ class hardware:
+                             'action': 'set_value_xml',
+                             'type': 'multivalue',
+                             },
+-                        'emmc': {
++                        'remote_type': {
+                             'order': 5,
++                            'name': 32429,
++                            'InfoText': 903,
++                            'value': 'NEC',
++                            'xml_node': 'remote_type',
++                            'action': 'set_value_xml',
++                            'type': 'multivalue',
++                            },
++                        'emmc': {
++                            'order': 6,
+                             'name': 32425,
+                             'InfoText': 900,
+                             'value': '',
+@@ -242,7 +251,7 @@ class hardware:
+                             'dangerous': True,
+                             },
+                         'slowsdio': {
+-                            'order': 6,
++                            'order': 7,
+                             'name': 32426,
+                             'InfoText': 901,
+                             'value': '',
+@@ -490,6 +499,13 @@ class hardware:
+                 if not value is None:
+                     self.struct['fan']['settings']['fan_level']['value'] = value
+ 
++            if not os.path.exists('/run/use-meson-remote'):
++                self.struct['dtb_settings']['settings']['remote_type']['hidden'] = 'true'
++            else:
++                if 'hidden' in self.struct['dtb_settings']['settings']['remote_type']:
++                    del self.struct['dtb_settings']['settings']['remote_type']['hidden']
++                self.fill_values_by_xml(self.struct['dtb_settings']['settings']['remote_type'])
++
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['sys_led'])
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['red_led'])
+             self.fill_values_by_xml(self.struct['dtb_settings']['settings']['spicc0'])
+-- 
+2.17.1
+
