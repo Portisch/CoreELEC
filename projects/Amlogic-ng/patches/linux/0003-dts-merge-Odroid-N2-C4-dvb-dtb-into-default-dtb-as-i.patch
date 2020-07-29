@@ -1,0 +1,322 @@
+From 9f6881c61e2d196d3d580e8f9c0b4a9df2272cf8 Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Mon, 20 Jul 2020 16:14:10 +0200
+Subject: [PATCH 3/4] dts: merge Odroid N2/C4 dvb dtb into default dtb as it is
+ handled by dtb-xml
+
+---
+ arch/arm64/boot/dts/amlogic/Makefile          |  3 --
+ .../boot/dts/amlogic/g12b_s922x_odroid_n2.dts | 40 ++++++++++++++++
+ .../dts/amlogic/g12b_s922x_odroid_n2_dvb.dts  | 47 -------------------
+ .../dts/amlogic/g12b_s922x_odroid_n2plus.dts  | 40 ++++++++++++++++
+ .../amlogic/g12b_s922x_odroid_n2plus_dvb.dts  | 47 -------------------
+ .../boot/dts/amlogic/sm1_s905x3_odroid_c4.dts | 40 ++++++++++++++++
+ 6 files changed, 120 insertions(+), 97 deletions(-)
+ delete mode 100644 arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2_dvb.dts
+ delete mode 100644 arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2plus_dvb.dts
+
+diff --git a/arch/arm64/boot/dts/amlogic/Makefile b/arch/arm64/boot/dts/amlogic/Makefile
+index ac66280b582b..3c4927d896d4 100644
+--- a/arch/arm64/boot/dts/amlogic/Makefile
++++ b/arch/arm64/boot/dts/amlogic/Makefile
+@@ -10,9 +10,7 @@ dtb-$(CONFIG_ARM64) += g12b_s922x_beelink_gt_king_rev_a.dtb
+ dtb-$(CONFIG_ARM64) += g12b_s922x_beelink_gs_king_x.dtb
+ dtb-$(CONFIG_ARM64) += g12b_s922x_minix_u22xj.dtb
+ dtb-$(CONFIG_ARM64) += g12b_s922x_odroid_n2.dtb
+-dtb-$(CONFIG_ARM64) += g12b_s922x_odroid_n2_dvb.dtb
+ dtb-$(CONFIG_ARM64) += g12b_s922x_odroid_n2plus.dtb
+-dtb-$(CONFIG_ARM64) += g12b_s922x_odroid_n2plus_dvb.dtb
+ dtb-$(CONFIG_ARM64) += g12b_s922x_ugoos_am6.dtb
+ dtb-$(CONFIG_ARM64) += g12b_s922x_ugoos_am6_rev_a.dtb
+ dtb-$(CONFIG_ARM64) += g12b_s922x_x88_king_rev_a.dtb
+@@ -23,7 +21,6 @@ dtb-$(CONFIG_ARM64) += sm1_s905x3_4g.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_4g_1gbit.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_4g_1gbit_slowsdio.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_odroid_c4.dtb
+-dtb-$(CONFIG_ARM64) += sm1_s905x3_odroid_c4_dvb.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_beelink_gt1mini2_2g.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_beelink_gt1mini2_4g.dtb
+ dtb-$(CONFIG_ARM64) += coreelec-gxl/gxl_p212_1g.dtb
+diff --git a/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2.dts b/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2.dts
+index 241fb7b851e9..df90517c8903 100644
+--- a/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2.dts
++++ b/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2.dts
+@@ -95,6 +95,26 @@
+ 			size = <32>;
+ 		};
+ 	};
++
++	dvb {
++		compatible = "amlogic,dvb";
++		dev_name = "avl6862";
++		status = "disabled";
++		dtv_demod0_i2c_adap_id = <2>;
++		ts0 = "serial";
++		ts0_control = <0>;
++		ts0_invert = <0>;
++		fec_reset_gpio-gpios = <&gpio GPIOX_13 GPIO_ACTIVE_HIGH>;
++		power_ctrl_gpio-gpios = <&gpio GPIOX_12 GPIO_ACTIVE_LOW>;
++		pinctrl-names = "s_ts0", "s_ts1";
++		pinctrl-0 = <&dvb_s_ts0_pins>;
++		pinctrl-1 = <&dvb_s_ts1_pins>;
++		interrupts = <GIC_SPI 23 IRQ_TYPE_EDGE_RISING>,
++			     <GIC_SPI  5 IRQ_TYPE_EDGE_RISING>,
++			     <GIC_SPI 19 IRQ_TYPE_EDGE_RISING>,
++			     <GIC_SPI 25 IRQ_TYPE_EDGE_RISING>;
++		interrupt-names = "demux0", "demux1", "asyncfifo0", "asyncfifo1";
++	};
+ };
+ 
+ &i2c0 {
+@@ -174,6 +194,26 @@
+ 			function = "spdif_out";
+ 		};
+ 	};
++
++	dvb_s_ts0_pins: dvb_s_ts0_pins {
++		tsin_a {
++			groups ="tsin_a_valid",
++				"tsin_a_sop",
++				"tsin_a_din0",
++				"tsin_a_clk";
++			function = "tsin_a";
++		};
++	};
++
++	dvb_s_ts1_pins: dvb_s_ts1_pins {
++		tsin_b {
++			groups = "tsin_b_sop_x",
++			"tsin_b_valid_x",
++			"tsin_b_clk_x",
++			"tsin_b_din0_x";
++			function = "tsin_b";
++		};
++	};
+ };
+ 
+ &pinctrl_aobus {
+diff --git a/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2_dvb.dts b/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2_dvb.dts
+deleted file mode 100644
+index 3d5be6dbe1da..000000000000
+--- a/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2_dvb.dts
++++ /dev/null
+@@ -1,47 +0,0 @@
+-#include "g12b_s922x_odroid_n2.dts"
+-
+-/{
+-	coreelec-dt-id = "g12b_s922x_odroid_n2_dvb";
+-
+-	dvb {
+-		compatible = "amlogic,dvb";
+-		dev_name = "avl6862";
+-		status = "okay";
+-		dtv_demod0_i2c_adap_id = <2>;
+-		ts0 = "serial";
+-		ts0_control = <0>;
+-		ts0_invert = <0>;
+-		fec_reset_gpio-gpios = <&gpio GPIOX_13 GPIO_ACTIVE_HIGH>;
+-		power_ctrl_gpio-gpios = <&gpio GPIOX_12 GPIO_ACTIVE_LOW>;
+-		pinctrl-names = "s_ts0", "s_ts1";
+-		pinctrl-0 = <&dvb_s_ts0_pins>;
+-		pinctrl-1 = <&dvb_s_ts1_pins>;
+-		interrupts = <GIC_SPI 23 IRQ_TYPE_EDGE_RISING>,
+-			     <GIC_SPI  5 IRQ_TYPE_EDGE_RISING>,
+-			     <GIC_SPI 19 IRQ_TYPE_EDGE_RISING>,
+-			     <GIC_SPI 25 IRQ_TYPE_EDGE_RISING>;
+-		interrupt-names = "demux0", "demux1", "asyncfifo0", "asyncfifo1";
+-	};
+-};
+-
+-&pinctrl_periphs {
+-	dvb_s_ts0_pins: dvb_s_ts0_pins {
+-		tsin_a {
+-			groups ="tsin_a_valid",
+-				"tsin_a_sop",
+-				"tsin_a_din0",
+-				"tsin_a_clk";
+-			function = "tsin_a";
+-		};
+-	};
+-
+-	dvb_s_ts1_pins: dvb_s_ts1_pins {
+-		tsin_b {
+-			groups = "tsin_b_sop_x",
+-			"tsin_b_valid_x",
+-			"tsin_b_clk_x",
+-			"tsin_b_din0_x";
+-			function = "tsin_b";
+-		};
+-	};
+-};
+diff --git a/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2plus.dts b/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2plus.dts
+index b5cc95844d7d..b82297becf43 100644
+--- a/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2plus.dts
++++ b/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2plus.dts
+@@ -108,6 +108,26 @@
+ 		#cooling-cells = <2>;
+ 		cooling-levels = <0 120 170 220>;
+ 	};
++
++	dvb {
++		compatible = "amlogic,dvb";
++		dev_name = "avl6862";
++		status = "disabled";
++		dtv_demod0_i2c_adap_id = <2>;
++		ts0 = "serial";
++		ts0_control = <0>;
++		ts0_invert = <0>;
++		fec_reset_gpio-gpios = <&gpio GPIOX_13 GPIO_ACTIVE_HIGH>;
++		power_ctrl_gpio-gpios = <&gpio GPIOX_12 GPIO_ACTIVE_LOW>;
++		pinctrl-names = "s_ts0", "s_ts1";
++		pinctrl-0 = <&dvb_s_ts0_pins>;
++		pinctrl-1 = <&dvb_s_ts1_pins>;
++		interrupts = <GIC_SPI 23 IRQ_TYPE_EDGE_RISING>,
++			     <GIC_SPI  5 IRQ_TYPE_EDGE_RISING>,
++			     <GIC_SPI 19 IRQ_TYPE_EDGE_RISING>,
++			     <GIC_SPI 25 IRQ_TYPE_EDGE_RISING>;
++		interrupt-names = "demux0", "demux1", "asyncfifo0", "asyncfifo1";
++	};
+ };
+ 
+ &i2c0 {
+@@ -187,6 +207,26 @@
+ 			function = "spdif_out";
+ 		};
+ 	};
++
++	dvb_s_ts0_pins: dvb_s_ts0_pins {
++		tsin_a {
++			groups ="tsin_a_valid",
++				"tsin_a_sop",
++				"tsin_a_din0",
++				"tsin_a_clk";
++			function = "tsin_a";
++		};
++	};
++
++	dvb_s_ts1_pins: dvb_s_ts1_pins {
++		tsin_b {
++			groups = "tsin_b_sop_x",
++			"tsin_b_valid_x",
++			"tsin_b_clk_x",
++			"tsin_b_din0_x";
++			function = "tsin_b";
++		};
++	};
+ };
+ 
+ &pinctrl_aobus {
+diff --git a/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2plus_dvb.dts b/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2plus_dvb.dts
+deleted file mode 100644
+index 0d2bb481c605..000000000000
+--- a/arch/arm64/boot/dts/amlogic/g12b_s922x_odroid_n2plus_dvb.dts
++++ /dev/null
+@@ -1,47 +0,0 @@
+-#include "g12b_s922x_odroid_n2plus.dts"
+-
+-/{
+-	coreelec-dt-id = "g12b_s922x_odroid_n2plus_dvb";
+-
+-	dvb {
+-		compatible = "amlogic,dvb";
+-		dev_name = "avl6862";
+-		status = "okay";
+-		dtv_demod0_i2c_adap_id = <2>;
+-		ts0 = "serial";
+-		ts0_control = <0>;
+-		ts0_invert = <0>;
+-		fec_reset_gpio-gpios = <&gpio GPIOX_13 GPIO_ACTIVE_HIGH>;
+-		power_ctrl_gpio-gpios = <&gpio GPIOX_12 GPIO_ACTIVE_LOW>;
+-		pinctrl-names = "s_ts0", "s_ts1";
+-		pinctrl-0 = <&dvb_s_ts0_pins>;
+-		pinctrl-1 = <&dvb_s_ts1_pins>;
+-		interrupts = <GIC_SPI 23 IRQ_TYPE_EDGE_RISING>,
+-			     <GIC_SPI  5 IRQ_TYPE_EDGE_RISING>,
+-			     <GIC_SPI 19 IRQ_TYPE_EDGE_RISING>,
+-			     <GIC_SPI 25 IRQ_TYPE_EDGE_RISING>;
+-		interrupt-names = "demux0", "demux1", "asyncfifo0", "asyncfifo1";
+-	};
+-};
+-
+-&pinctrl_periphs {
+-	dvb_s_ts0_pins: dvb_s_ts0_pins {
+-		tsin_a {
+-			groups ="tsin_a_valid",
+-				"tsin_a_sop",
+-				"tsin_a_din0",
+-				"tsin_a_clk";
+-			function = "tsin_a";
+-		};
+-	};
+-
+-	dvb_s_ts1_pins: dvb_s_ts1_pins {
+-		tsin_b {
+-			groups = "tsin_b_sop_x",
+-			"tsin_b_valid_x",
+-			"tsin_b_clk_x",
+-			"tsin_b_din0_x";
+-			function = "tsin_b";
+-		};
+-	};
+-};
+diff --git a/arch/arm64/boot/dts/amlogic/sm1_s905x3_odroid_c4.dts b/arch/arm64/boot/dts/amlogic/sm1_s905x3_odroid_c4.dts
+index 77745e6131c3..799f63b29f92 100644
+--- a/arch/arm64/boot/dts/amlogic/sm1_s905x3_odroid_c4.dts
++++ b/arch/arm64/boot/dts/amlogic/sm1_s905x3_odroid_c4.dts
+@@ -77,6 +77,26 @@
+ 			size = <32>;
+ 		};
+ 	};
++
++	dvb {
++		compatible = "amlogic,dvb";
++		dev_name = "avl6862";
++		status = "disabled";
++		dtv_demod0_i2c_adap_id = <2>;
++		ts0 = "serial";
++		ts0_control = <0>;
++		ts0_invert = <0>;
++		fec_reset_gpio-gpios = <&gpio GPIOX_13 GPIO_ACTIVE_HIGH>;
++		power_ctrl_gpio-gpios = <&gpio GPIOX_12 GPIO_ACTIVE_LOW>;
++		pinctrl-names = "s_ts0", "s_ts1";
++		pinctrl-0 = <&dvb_s_ts0_pins>;
++		pinctrl-1 = <&dvb_s_ts1_pins>;
++		interrupts = <GIC_SPI 23 IRQ_TYPE_EDGE_RISING>,
++			     <GIC_SPI  5 IRQ_TYPE_EDGE_RISING>,
++			     <GIC_SPI 19 IRQ_TYPE_EDGE_RISING>,
++			     <GIC_SPI 25 IRQ_TYPE_EDGE_RISING>;
++		interrupt-names = "demux0", "demux1", "asyncfifo0", "asyncfifo1";
++	};
+ };
+ 
+ &spicc0 {
+@@ -118,6 +138,26 @@
+ &pinctrl_periphs {
+ 	/delete-node/ spdifout;
+ 	/delete-node/ spdifout_a_mute;
++
++	dvb_s_ts0_pins: dvb_s_ts0_pins {
++		tsin_a {
++			groups ="tsin_a_valid",
++				"tsin_a_sop",
++				"tsin_a_din0",
++				"tsin_a_clk";
++			function = "tsin_a";
++		};
++	};
++
++	dvb_s_ts1_pins: dvb_s_ts1_pins {
++		tsin_b {
++			groups = "tsin_b_sop_x",
++			"tsin_b_valid_x",
++			"tsin_b_clk_x",
++			"tsin_b_din0_x";
++			function = "tsin_b";
++		};
++	};
+ };
+ 
+ &pinctrl_aobus {
+-- 
+2.17.1
+

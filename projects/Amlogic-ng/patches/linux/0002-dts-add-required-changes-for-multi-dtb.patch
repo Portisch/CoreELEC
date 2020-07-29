@@ -1,0 +1,107 @@
+From 265667ce870176055ff5aa6438adb854c7633dc8 Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Thu, 23 Jul 2020 12:04:31 +0200
+Subject: [PATCH 2/4] dts: add required changes for multi-dtb
+
+---
+ arch/arm64/boot/dts/amlogic/Makefile                       | 2 ++
+ arch/arm64/boot/dts/amlogic/g12b_s922x_beelink_gt_king.dts | 1 +
+ .../boot/dts/amlogic/g12b_s922x_beelink_gt_king_rev_a.dts  | 1 +
+ arch/arm64/boot/dts/amlogic/g12b_s922x_ugoos_am6.dts       | 1 +
+ arch/arm64/boot/dts/amlogic/g12b_s922x_ugoos_am6_rev_a.dts | 1 +
+ .../boot/dts/amlogic/sm1_s905x3_beelink_gt1mini2_2g.dts    | 7 +++++++
+ .../boot/dts/amlogic/sm1_s905x3_beelink_gt1mini2_4g.dts    | 7 +++++++
+ 7 files changed, 20 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/amlogic/sm1_s905x3_beelink_gt1mini2_2g.dts
+ create mode 100644 arch/arm64/boot/dts/amlogic/sm1_s905x3_beelink_gt1mini2_4g.dts
+
+diff --git a/arch/arm64/boot/dts/amlogic/Makefile b/arch/arm64/boot/dts/amlogic/Makefile
+index cab1e51773c6..ac66280b582b 100644
+--- a/arch/arm64/boot/dts/amlogic/Makefile
++++ b/arch/arm64/boot/dts/amlogic/Makefile
+@@ -24,6 +24,8 @@ dtb-$(CONFIG_ARM64) += sm1_s905x3_4g_1gbit.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_4g_1gbit_slowsdio.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_odroid_c4.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_odroid_c4_dvb.dtb
++dtb-$(CONFIG_ARM64) += sm1_s905x3_beelink_gt1mini2_2g.dtb
++dtb-$(CONFIG_ARM64) += sm1_s905x3_beelink_gt1mini2_4g.dtb
+ dtb-$(CONFIG_ARM64) += coreelec-gxl/gxl_p212_1g.dtb
+ dtb-$(CONFIG_ARM64) += coreelec-gxl/gxl_p212_1g_lepotato.dtb
+ dtb-$(CONFIG_ARM64) += coreelec-gxl/gxl_p212_1g_g9sx.dtb
+diff --git a/arch/arm64/boot/dts/amlogic/g12b_s922x_beelink_gt_king.dts b/arch/arm64/boot/dts/amlogic/g12b_s922x_beelink_gt_king.dts
+index 0698ea271222..43c02490098a 100644
+--- a/arch/arm64/boot/dts/amlogic/g12b_s922x_beelink_gt_king.dts
++++ b/arch/arm64/boot/dts/amlogic/g12b_s922x_beelink_gt_king.dts
+@@ -3,6 +3,7 @@
+ /{
+ 	model = "Beelink";
+ 	coreelec-dt-id = "g12b_s922x_beelink_gt_king";
++	amlogic-dt-id = "g12b_w400_b";
+ 
+ 	memory@00000000 {
+ 		linux,usable-memory = <0x0 0x100000 0x0 0xf0800000>;
+diff --git a/arch/arm64/boot/dts/amlogic/g12b_s922x_beelink_gt_king_rev_a.dts b/arch/arm64/boot/dts/amlogic/g12b_s922x_beelink_gt_king_rev_a.dts
+index b8920f530084..dfa27b9a0d0e 100644
+--- a/arch/arm64/boot/dts/amlogic/g12b_s922x_beelink_gt_king_rev_a.dts
++++ b/arch/arm64/boot/dts/amlogic/g12b_s922x_beelink_gt_king_rev_a.dts
+@@ -3,6 +3,7 @@
+ /{
+ 	model = "Beelink";
+ 	coreelec-dt-id = "g12b_s922x_beelink_gt_king_rev_a";
++	amlogic-dt-id = "g12b_w400_a";
+ 
+ 	memory@00000000 {
+ 		linux,usable-memory = <0x0 0x100000 0x0 0xf0800000>;
+diff --git a/arch/arm64/boot/dts/amlogic/g12b_s922x_ugoos_am6.dts b/arch/arm64/boot/dts/amlogic/g12b_s922x_ugoos_am6.dts
+index bd501c3fd901..98c10e419715 100644
+--- a/arch/arm64/boot/dts/amlogic/g12b_s922x_ugoos_am6.dts
++++ b/arch/arm64/boot/dts/amlogic/g12b_s922x_ugoos_am6.dts
+@@ -3,6 +3,7 @@
+ /{
+ 	model = "UGOOS AM6";
+ 	coreelec-dt-id = "g12b_s922x_ugoos_am6";
++	amlogic-dt-id = "g12b_w400_b";
+ 
+ 	/delete-node/ memory@00000000;
+ 
+diff --git a/arch/arm64/boot/dts/amlogic/g12b_s922x_ugoos_am6_rev_a.dts b/arch/arm64/boot/dts/amlogic/g12b_s922x_ugoos_am6_rev_a.dts
+index cb74e8f154ed..2191cc2daf0f 100644
+--- a/arch/arm64/boot/dts/amlogic/g12b_s922x_ugoos_am6_rev_a.dts
++++ b/arch/arm64/boot/dts/amlogic/g12b_s922x_ugoos_am6_rev_a.dts
+@@ -3,6 +3,7 @@
+ /{
+ 	model = "UGOOS AM6";
+ 	coreelec-dt-id = "g12b_s922x_ugoos_am6_rev_a";
++	amlogic-dt-id = "g12b_w400_a";
+ 
+ 	/delete-node/ memory@00000000;
+ 
+diff --git a/arch/arm64/boot/dts/amlogic/sm1_s905x3_beelink_gt1mini2_2g.dts b/arch/arm64/boot/dts/amlogic/sm1_s905x3_beelink_gt1mini2_2g.dts
+new file mode 100644
+index 000000000000..124f37f3fa17
+--- /dev/null
++++ b/arch/arm64/boot/dts/amlogic/sm1_s905x3_beelink_gt1mini2_2g.dts
+@@ -0,0 +1,7 @@
++#include "sm1_s905x3_2g_1gbit.dts"
++
++/{
++	model = "Beelink";
++	coreelec-dt-id = "sm1_s905x3_beelink_gt1mini2_2g";
++	amlogic-dt-id = "sm1_ac213_2g";
++};
+diff --git a/arch/arm64/boot/dts/amlogic/sm1_s905x3_beelink_gt1mini2_4g.dts b/arch/arm64/boot/dts/amlogic/sm1_s905x3_beelink_gt1mini2_4g.dts
+new file mode 100644
+index 000000000000..deb07a35dbcb
+--- /dev/null
++++ b/arch/arm64/boot/dts/amlogic/sm1_s905x3_beelink_gt1mini2_4g.dts
+@@ -0,0 +1,7 @@
++#include "sm1_s905x3_4g_1gbit.dts"
++
++/{
++	model = "Beelink";
++	coreelec-dt-id = "sm1_s905x3_beelink_gt1mini2_4g";
++	amlogic-dt-id = "sm1_ac213_4g";
++};
+-- 
+2.17.1
+

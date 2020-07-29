@@ -1,0 +1,43 @@
+From 76a264e7c5fd9388721ec8d312bd36515338b74a Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Thu, 23 Jul 2020 13:36:02 +0200
+Subject: [PATCH 4/4] dts: remove extra slowsdio as it's handled by dtb-xml
+
+---
+ arch/arm64/boot/dts/amlogic/Makefile                  |  1 -
+ .../boot/dts/amlogic/sm1_s905x3_4g_1gbit_slowsdio.dts | 11 -----------
+ 2 files changed, 12 deletions(-)
+ delete mode 100644 arch/arm64/boot/dts/amlogic/sm1_s905x3_4g_1gbit_slowsdio.dts
+
+diff --git a/arch/arm64/boot/dts/amlogic/Makefile b/arch/arm64/boot/dts/amlogic/Makefile
+index 3c4927d896d4..6e940c1c8e35 100644
+--- a/arch/arm64/boot/dts/amlogic/Makefile
++++ b/arch/arm64/boot/dts/amlogic/Makefile
+@@ -19,7 +19,6 @@ dtb-$(CONFIG_ARM64) += sm1_s905x3_2g.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_2g_1gbit.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_4g.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_4g_1gbit.dtb
+-dtb-$(CONFIG_ARM64) += sm1_s905x3_4g_1gbit_slowsdio.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_odroid_c4.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_beelink_gt1mini2_2g.dtb
+ dtb-$(CONFIG_ARM64) += sm1_s905x3_beelink_gt1mini2_4g.dtb
+diff --git a/arch/arm64/boot/dts/amlogic/sm1_s905x3_4g_1gbit_slowsdio.dts b/arch/arm64/boot/dts/amlogic/sm1_s905x3_4g_1gbit_slowsdio.dts
+deleted file mode 100644
+index 61a9b2ac9129..000000000000
+--- a/arch/arm64/boot/dts/amlogic/sm1_s905x3_4g_1gbit_slowsdio.dts
++++ /dev/null
+@@ -1,11 +0,0 @@
+-#include "sm1_s905x3_4g_1gbit.dts"
+-
+-/{
+-	coreelec-dt-id = "sm1_s905x3_4g_1gbit_slowsdio";
+-};
+-
+-&sd_emmc_a {
+-	sdio {
+-		f_max = <170000000>;
+-	};
+-};
+-- 
+2.17.1
+
