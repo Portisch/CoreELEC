@@ -1,0 +1,27 @@
+From 5184a29ce020a8084e6cd1a613737ae8a9090a6b Mon Sep 17 00:00:00 2001
+From: Portisch <hugo.portisch@yahoo.de>
+Date: Wed, 7 Oct 2020 15:06:35 +0200
+Subject: [PATCH 41/41] AMLCodec: use multi decoder for VFORMAT_H264MVC
+
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index 342ad91b8f..7f99866aa5 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -1711,8 +1711,9 @@ bool CAMLCodec::OpenDecoder(CDVDStreamInfo &hints)
+       if (m_hints.ptsinvalid)
+         am_private->gcodec.param = (void*)(EXTERNAL_PTS | KEYFRAME_PTS_ONLY);
+       break;
+-    case VFORMAT_H264:
+     case VFORMAT_H264MVC:
++      am_private->gcodec.multi_vdec = 0;
++    case VFORMAT_H264:
+       am_private->gcodec.format = VIDEO_DEC_FORMAT_H264;
+       am_private->gcodec.param  = (void*)EXTERNAL_PTS;
+       // h264 in an avi file
+-- 
+2.28.0
+

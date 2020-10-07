@@ -1,0 +1,27 @@
+From 216b9d83485f90353c82a2856acccbdbff057974 Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Sat, 3 Aug 2019 21:20:18 +0100
+Subject: [PATCH 20/41] WinSystemAmlogic: we need a surface big enough to
+ handle 3D FP frame
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ xbmc/windowing/amlogic/WinSystemAmlogic.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+index c0a28d166d..86e74f5506 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+@@ -146,7 +146,7 @@ bool CWinSystemAmlogic::InitWindowSystem()
+   CRendererAML::Register();
+ 
+   if (aml_get_cpufamily_id() <= AML_GXL)
+-    aml_set_framebuffer_resolution(1920, 1080, m_framebuffer_name);
++    aml_set_framebuffer_resolution(1920, 2205, m_framebuffer_name);
+ 
+   return CWinSystemBase::InitWindowSystem();
+ }
+-- 
+2.28.0
+

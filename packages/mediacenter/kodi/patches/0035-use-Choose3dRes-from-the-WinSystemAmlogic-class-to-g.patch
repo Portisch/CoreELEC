@@ -1,0 +1,40 @@
+From f4047389abddbdff6903329b80c2bd128194ccf5 Mon Sep 17 00:00:00 2001
+From: tanio99 <tanio99@wolke7.net>
+Date: Fri, 23 Aug 2019 09:24:18 +0200
+Subject: [PATCH 35/41] use Choose3dRes() from the WinSystemAmlogic class to
+ get the GUI resolution
+
+---
+ xbmc/windowing/amlogic/WinSystemAmlogicGLESContext.cpp | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogicGLESContext.cpp b/xbmc/windowing/amlogic/WinSystemAmlogicGLESContext.cpp
+index bdec374a5c..9a353c0361 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogicGLESContext.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogicGLESContext.cpp
+@@ -9,6 +9,7 @@
+ #include "VideoSyncAML.h"
+ #include "WinSystemAmlogicGLESContext.h"
+ #include "utils/log.h"
++#include "windowing/GraphicContext.h"
+ #include "threads/SingleLock.h"
+ 
+ std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
+@@ -95,8 +96,12 @@ bool CWinSystemAmlogicGLESContext::ResizeWindow(int newWidth, int newHeight, int
+ 
+ bool CWinSystemAmlogicGLESContext::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays)
+ {
+-  CreateNewWindow("", fullScreen, res);
+-  CRenderSystemGLES::ResetRenderSystem(res.iScreenWidth, res.iScreenHeight);
++  RENDER_STEREO_MODE stereo_mode = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
++  RESOLUTION_INFO myRes = Choose3dRes(stereo_mode, res);
++
++  CreateNewWindow("", fullScreen, myRes);
++
++  CRenderSystemGLES::ResetRenderSystem(myRes.iWidth, myRes.iHeight);
+   return true;
+ }
+ 
+-- 
+2.28.0
+

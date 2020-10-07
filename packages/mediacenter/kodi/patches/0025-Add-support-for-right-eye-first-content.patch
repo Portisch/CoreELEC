@@ -1,0 +1,146 @@
+From 1376f979d8f4c7dcd89c8b589dd790cca6a18e5d Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Tue, 7 Jul 2020 06:49:17 +0200
+Subject: [PATCH 25/41] Add support for right-eye-first content
+
+---
+ .../VideoPlayer/DVDCodecs/Video/AMLCodec.cpp  | 29 ++++++++++++++++++-
+ .../VideoPlayer/DVDCodecs/Video/AMLCodec.h    |  2 ++
+ xbmc/cores/VideoPlayer/VideoPlayerVideo.cpp   |  5 ++++
+ xbmc/utils/AMLUtils.cpp                       |  5 +++-
+ 4 files changed, 39 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index dfb4623001..bc0c0af9ea 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -2238,6 +2238,12 @@ CDVDVideoCodec::VCReturn CAMLCodec::GetPicture(VideoPicture *pVideoPicture)
+     CLog::Log(LOGDEBUG, LOGVIDEO, "CAMLCodec::GetPicture: index: %u, pts: %0.3lf, dur:%0.0lfms ar:%0.2f",
+ 		m_bufferIndex, pVideoPicture->pts / DVD_TIME_BASE, pVideoPicture->iDuration / 1000, m_hints.aspect);
+ 
++    pVideoPicture->stereoMode = m_hints.stereo_mode;
++    if (pVideoPicture->stereoMode == "block_lr" && m_processInfo.GetVideoSettings().m_StereoInvert)
++      pVideoPicture->stereoMode = "block_rl";
++    else if (pVideoPicture->stereoMode == "block_rl" && m_processInfo.GetVideoSettings().m_StereoInvert)
++      pVideoPicture->stereoMode = "block_lr";
++
+     return CDVDVideoCodec::VC_PICTURE;
+   }
+   else if (m_drain)
+@@ -2325,6 +2331,16 @@ void CAMLCodec::SetVideoSaturation(const int saturation)
+   SysfsUtils::SetInt("/sys/class/video/saturation", saturation);
+ }
+ 
++void CAMLCodec::SetMvcViewMode(const int viewMode)
++{
++  // set MVC view mode:
++  //   0 ... left
++  //   1 ... right
++  //   2 ... left<->right
++  //   3 ... right<->left
++  SysfsUtils::SetInt("/sys/module/amvdec_h264mvc/parameters/view_mode", viewMode);
++}
++
+ void CAMLCodec::Set3dVideoMode(const unsigned int mode)
+ {
+   int video_fd = open("/dev/amvideo", O_RDWR);
+@@ -2436,6 +2452,13 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
+     update = true;
+   }
+ 
++  std::string videoStereoMode = m_processInfo.GetVideoStereoMode();
++  if (m_video_stereo_mode != videoStereoMode)
++  {
++    m_video_stereo_mode = videoStereoMode;
++    update = true;
++  }
++
+   if (!update)
+   {
+     // mainvideo 'should' be showing already if we get here, make sure.
+@@ -2483,25 +2506,29 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
+     dst_rect.y2 = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo().iScreenHeight;
+   }
+ 
+-  std::string videoStereoMode = m_processInfo.GetVideoStereoMode();
+   bool isMvc = videoStereoMode == "block_lr" || videoStereoMode == "block_rl";
+ 
+   if (isMvc)
+   {
++    int view_mode = videoStereoMode == "block_lr" ? 3 : 2;
++
+     if (m_guiStereoMode == RENDER_STEREO_MODE_HARDWAREBASED)
+     {
+       SetFramepackingSupport(true);
+       Set3dVideoMode(MODE_3D_ENABLE | MODE_3D_FA);
++      SetMvcViewMode(view_mode);
+     }
+     else if (m_guiStereoMode == RENDER_STEREO_MODE_SPLIT_VERTICAL)
+     {
+       SetFramepackingSupport(false);
+       Set3dVideoMode(MODE_3D_OUT_LR | MODE_3D_FA | MODE_3D_ENABLE);
++      SetMvcViewMode(view_mode);
+     }
+     else if (m_guiStereoMode == RENDER_STEREO_MODE_SPLIT_HORIZONTAL)
+     {
+       SetFramepackingSupport(false);
+       Set3dVideoMode(MODE_3D_OUT_TB | MODE_3D_FA | MODE_3D_ENABLE);
++      SetMvcViewMode(view_mode);
+     }
+     else if (m_guiStereoMode == RENDER_STEREO_MODE_MONO)
+     {
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h
+index a42ece1d8d..7ce3ff116b 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h
+@@ -60,6 +60,7 @@ private:
+   void          SetVideoContrast(const int contrast);
+   void          SetVideoBrightness(const int brightness);
+   void          SetVideoSaturation(const int saturation);
++  void          SetMvcViewMode(const int viewMode);
+   void          Set3dVideoMode(const unsigned int mode);
+   void          SetFramepackingSupport(const bool enable);
+   bool          OpenAmlVideo(const CDVDStreamInfo &hints);
+@@ -92,6 +93,7 @@ private:
+   int              m_contrast = -1;
+   int              m_brightness = -1;
+   RESOLUTION       m_video_res = RES_INVALID;
++  std::string      m_video_stereo_mode;
+ 
+   static const unsigned int STATE_PREFILLED  = 1;
+   static const unsigned int STATE_HASPTS     = 2;
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayerVideo.cpp b/xbmc/cores/VideoPlayer/VideoPlayerVideo.cpp
+index f6a571e1b3..fe82e83205 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayerVideo.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayerVideo.cpp
+@@ -734,6 +734,11 @@ bool CVideoPlayerVideo::ProcessDecoderOutput(double &frametime, double &pts)
+           if (m_processInfo.GetVideoSettings().m_StereoInvert)
+             stereoMode = "bottom_top";
+           break;
++        case RENDER_STEREO_MODE_HARDWAREBASED:
++          stereoMode = "block_lr";
++          if (m_processInfo.GetVideoSettings().m_StereoInvert)
++            stereoMode = "block_rl";
++          break;
+         default:
+           stereoMode = m_hints.stereo_mode;
+           break;
+diff --git a/xbmc/utils/AMLUtils.cpp b/xbmc/utils/AMLUtils.cpp
+index 16d2c4c08d..2483af1be2 100644
+--- a/xbmc/utils/AMLUtils.cpp
++++ b/xbmc/utils/AMLUtils.cpp
+@@ -163,7 +163,10 @@ bool aml_permissions()
+     {
+       CLog::Log(LOGERROR, "AML: no rw on /sys/module/amvideo/parameters/framepacking_support");
+     }
+-
++    if (!SysfsUtils::HasRW("/sys/module/amvdec_h264mvc/parameters/view_mode"))
++    {
++      CLog::Log(LOGERROR, "AML: no rw on /sys/module/amvdec_h264mvc/parameters/view_mode");
++    }
+   }
+ 
+   return permissions_ok == 1;
+-- 
+2.28.0
+

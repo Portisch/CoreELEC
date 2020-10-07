@@ -1,0 +1,26 @@
+From f041278a0291d328cdcab19e3d939c5f4b4f4815 Mon Sep 17 00:00:00 2001
+From: tanio99 <tanio99@wolke7.net>
+Date: Fri, 23 Aug 2019 09:19:09 +0200
+Subject: [PATCH 34/41] fixed FP screen height calculation
+
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index 0c55c20540..342ad91b8f 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -2523,7 +2523,8 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
+   {
+     // 3D frame packed output: get the screen height from the graphic context
+     // (will work in fullscreen mode only)
+-    dst_rect.y2 = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo().iScreenHeight;
++    RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo();
++    dst_rect.y2 = info.iHeight * 2 + info.iBlanking;
+   }
+ 
+   bool isMvc = videoStereoMode == "block_lr" || videoStereoMode == "block_rl";
+-- 
+2.28.0
+

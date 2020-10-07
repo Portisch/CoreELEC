@@ -1,0 +1,57 @@
+From 7231f01d417d5812dae253349747de20872f20b8 Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Tue, 7 Jul 2020 06:40:52 +0200
+Subject: [PATCH 24/41] AMLUtils: handle scaling of MVC correctly
+
+---
+ xbmc/utils/AMLUtils.cpp | 7 ++++---
+ xbmc/utils/AMLUtils.h   | 1 +
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/utils/AMLUtils.cpp b/xbmc/utils/AMLUtils.cpp
+index d37c187694..16d2c4c08d 100644
+--- a/xbmc/utils/AMLUtils.cpp
++++ b/xbmc/utils/AMLUtils.cpp
+@@ -747,6 +747,9 @@ void aml_handle_display_stereo_mode(const int stereo_mode)
+     case RENDER_STEREO_MODE_SPLIT_HORIZONTAL:
+       command = "3dtb";
+       break;
++    case RENDER_STEREO_MODE_HARDWAREBASED:
++      command = "3dfp";
++      break;
+     default:
+       // nothing - command is already initialised to "3doff"
+       break;
+@@ -788,8 +791,6 @@ void aml_enable_freeScale(const RESOLUTION_INFO &res)
+   SysfsUtils::SetInt("/sys/class/graphics/fb0/free_scale", 0);
+   SysfsUtils::SetString("/sys/class/graphics/fb0/free_scale_axis", fsaxis_str);
+   SysfsUtils::SetString("/sys/class/graphics/fb0/window_axis", waxis_str);
+-  SysfsUtils::SetInt("/sys/class/graphics/fb0/scale_width", res.iWidth);
+-  SysfsUtils::SetInt("/sys/class/graphics/fb0/scale_height", res.iHeight);
+   SysfsUtils::SetInt("/sys/class/graphics/fb0/free_scale", 0x10001);
+ }
+ 
+@@ -802,7 +803,7 @@ void aml_disable_freeScale()
+ 
+ void aml_set_framebuffer_resolution(const RESOLUTION_INFO &res, std::string framebuffer_name)
+ {
+-  aml_set_framebuffer_resolution(res.iWidth, res.iHeight, framebuffer_name);
++  aml_set_framebuffer_resolution(res.iScreenWidth, res.iScreenHeight, framebuffer_name);
+ }
+ 
+ void aml_set_framebuffer_resolution(int width, int height, std::string framebuffer_name)
+diff --git a/xbmc/utils/AMLUtils.h b/xbmc/utils/AMLUtils.h
+index 287a23f5f8..840135d985 100644
+--- a/xbmc/utils/AMLUtils.h
++++ b/xbmc/utils/AMLUtils.h
+@@ -65,6 +65,7 @@ bool aml_mode_to_resolution(const char *mode, RESOLUTION_INFO *res);
+ bool aml_get_native_resolution(RESOLUTION_INFO *res);
+ bool aml_set_native_resolution(const RESOLUTION_INFO &res, std::string framebuffer_name, const int stereo_mode);
+ bool aml_probe_resolutions(std::vector<RESOLUTION_INFO> &resolutions);
++bool aml_probe_3d_resolutions(std::vector<RESOLUTION_INFO> &resolutions);
+ bool aml_get_preferred_resolution(RESOLUTION_INFO *res);
+ bool aml_set_display_resolution(const RESOLUTION_INFO &res, std::string framebuffer_name);
+ void aml_setup_video_scaling(const char *mode);
+-- 
+2.28.0
+

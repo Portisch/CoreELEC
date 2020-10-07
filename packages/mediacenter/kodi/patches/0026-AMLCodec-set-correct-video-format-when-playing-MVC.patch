@@ -1,0 +1,66 @@
+From 92892a285ebae5205e47cf42a4322fcaf88c78fd Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Wed, 21 Aug 2019 18:08:43 +0100
+Subject: [PATCH 26/41] AMLCodec: set correct video format when playing MVC
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ .../VideoPlayer/DVDCodecs/Video/AMLCodec.cpp      | 15 +++++++++++++++
+ .../DVDCodecs/Video/DVDVideoCodecAmlogic.h        |  1 +
+ 2 files changed, 16 insertions(+)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index bc0c0af9ea..ecf0054036 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -246,6 +246,14 @@ static const int64_t INT64_0 = 0x8000000000000000ULL;
+ #define CODEC_TAG_VC_1  (0x312D4356)
+ #endif
+ 
++#ifndef CODEC_TAG_AMVC
++#define CODEC_TAG_AMVC  (0x43564d41)
++#endif
++
++#ifndef CODEC_TAG_MVC1
++#define CODEC_TAG_MVC1  (0x3143564d)
++#endif
++
+ #ifndef HAS_LIBAMCODEC_VP9
+ #define VFORMAT_VP9           VFORMAT_UNSUPPORT
+ #define VIDEO_DEC_FORMAT_VP9  VIDEO_DEC_FORMAT_MAX
+@@ -496,6 +504,8 @@ static vdec_type_t codec_tag_to_vdec_type(unsigned int codec_tag)
+       // h264
+       dec_type = VIDEO_DEC_FORMAT_H264;
+       break;
++    case CODEC_TAG_AMVC:
++    case CODEC_TAG_MVC1:
+     case AV_CODEC_ID_H264_MVC:
+       dec_type = VIDEO_DEC_FORMAT_H264;
+       break;
+@@ -1629,6 +1639,11 @@ bool CAMLCodec::OpenDecoder(CDVDStreamInfo &hints)
+     am_private->video_rotation_degree = 3;
+   // handle extradata
+   am_private->video_format      = codecid_to_vformat(hints.codec);
++
++  // in case we're watching MVC content, switch the video_format
++  if (hints.codec_tag == CODEC_TAG_AMVC || hints.codec_tag == CODEC_TAG_MVC1)
++    am_private->video_format = VFORMAT_H264MVC;
++
+   if ((am_private->video_format == VFORMAT_H264)
+     && (hints.width > 1920 || hints.height > 1088)
+     && (aml_support_h264_4k2k() == AML_HAS_H264_4K2K))
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h
+index 575641c3a7..1b5ddf474b 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h
+@@ -74,6 +74,7 @@ public:
+   virtual void SetSpeed(int iSpeed) override;
+   virtual void SetCodecControl(int flags) override;
+   virtual const char* GetName(void) override { return (const char*)m_pFormatName; }
++  virtual bool SupportsExtention() { return true; }
+ 
+ protected:
+   void            Dispose(void);
+-- 
+2.28.0
+

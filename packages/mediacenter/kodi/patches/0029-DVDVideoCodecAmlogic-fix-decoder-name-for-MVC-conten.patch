@@ -1,0 +1,25 @@
+From 7daa549b55564c9cba2d9860d711d2afd5a0db29 Mon Sep 17 00:00:00 2001
+From: tanio99 <tanio99@wolke7.net>
+Date: Tue, 7 Jul 2020 06:51:18 +0200
+Subject: [PATCH 29/41] DVDVideoCodecAmlogic: fix decoder name for MVC content
+
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
+index d4b1afb536..2d99c2ea01 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
+@@ -179,7 +179,7 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
+         m_h264_sequence->ratio  = m_hints.aspect;
+       }
+ 
+-      m_pFormatName = "am-h264";
++      m_pFormatName = CAMLCodec::IsMvc(m_hints) ? "am-h264mvc" : "am-h264";
+       // convert h264-avcC to h264-annex-b as h264-avcC
+       // under streamers can have issues when seeking.
+       if (m_hints.extradata && *(uint8_t*)m_hints.extradata == 1)
+-- 
+2.28.0
+

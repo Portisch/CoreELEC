@@ -1,0 +1,30 @@
+From 96cb4431ea4724bb6a18e94fcfe746aad42f272f Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Sat, 3 Aug 2019 21:05:25 +0100
+Subject: [PATCH 15/41] AMLUtils: add support for toggling TMDS. This is needed
+ to ensure changes are accepted
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ xbmc/utils/AMLUtils.cpp | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/xbmc/utils/AMLUtils.cpp b/xbmc/utils/AMLUtils.cpp
+index 5d3e813592..a4aa0924d3 100644
+--- a/xbmc/utils/AMLUtils.cpp
++++ b/xbmc/utils/AMLUtils.cpp
+@@ -533,6 +533,11 @@ bool aml_get_native_resolution(RESOLUTION_INFO *res)
+   return result;
+ }
+ 
++static void aml_enable_PHY(const int stereo_mode, bool enable)
++{
++    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/phy", enable ? "1" : "0");
++}
++
+ bool aml_set_native_resolution(const RESOLUTION_INFO &res, std::string framebuffer_name, const int stereo_mode)
+ {
+   bool result = false;
+-- 
+2.28.0
+

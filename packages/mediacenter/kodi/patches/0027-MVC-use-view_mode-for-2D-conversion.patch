@@ -1,0 +1,26 @@
+From 0f1ec0c3a6fcd6e983f02adb7a15e5a8c4c49e1c Mon Sep 17 00:00:00 2001
+From: tanio99 <tanio99@wolke7.net>
+Date: Tue, 27 Aug 2019 15:00:51 +0200
+Subject: [PATCH 27/41] MVC: use view_mode for 2D conversion
+
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index ecf0054036..d02ccfb742 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -2548,7 +2548,8 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
+     else if (m_guiStereoMode == RENDER_STEREO_MODE_MONO)
+     {
+       SetFramepackingSupport(false);
+-      Set3dVideoMode(MODE_3D_TO_2D_R | MODE_3D_FA | MODE_3D_ENABLE);
++      Set3dVideoMode(MODE_3D_DISABLE);
++      SetMvcViewMode(videoStereoMode == "block_lr" ? 0 : 1);
+     }
+   }
+   else
+-- 
+2.28.0
+

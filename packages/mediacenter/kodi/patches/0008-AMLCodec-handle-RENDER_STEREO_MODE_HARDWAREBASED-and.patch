@@ -1,0 +1,65 @@
+From bbe62ed1e389d7c52f0656a79a3006ea0ea9c141 Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Sat, 3 Aug 2019 20:52:42 +0100
+Subject: [PATCH 08/41] AMLCodec: handle RENDER_STEREO_MODE_HARDWAREBASED and
+ set 3D appropriately
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ .../VideoPlayer/DVDCodecs/Video/AMLCodec.cpp  | 40 +++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index 38dc073496..dfb4623001 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -2476,6 +2476,46 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
+     dst_rect.y2 *= 2.0;
+   }
+ 
++  else if (m_guiStereoMode == RENDER_STEREO_MODE_HARDWAREBASED)
++  {
++    // 3D frame packed output: get the screen height from the graphic context
++    // (will work in fullscreen mode only)
++    dst_rect.y2 = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo().iScreenHeight;
++  }
++
++  std::string videoStereoMode = m_processInfo.GetVideoStereoMode();
++  bool isMvc = videoStereoMode == "block_lr" || videoStereoMode == "block_rl";
++
++  if (isMvc)
++  {
++    if (m_guiStereoMode == RENDER_STEREO_MODE_HARDWAREBASED)
++    {
++      SetFramepackingSupport(true);
++      Set3dVideoMode(MODE_3D_ENABLE | MODE_3D_FA);
++    }
++    else if (m_guiStereoMode == RENDER_STEREO_MODE_SPLIT_VERTICAL)
++    {
++      SetFramepackingSupport(false);
++      Set3dVideoMode(MODE_3D_OUT_LR | MODE_3D_FA | MODE_3D_ENABLE);
++    }
++    else if (m_guiStereoMode == RENDER_STEREO_MODE_SPLIT_HORIZONTAL)
++    {
++      SetFramepackingSupport(false);
++      Set3dVideoMode(MODE_3D_OUT_TB | MODE_3D_FA | MODE_3D_ENABLE);
++    }
++    else if (m_guiStereoMode == RENDER_STEREO_MODE_MONO)
++    {
++      SetFramepackingSupport(false);
++      Set3dVideoMode(MODE_3D_TO_2D_R | MODE_3D_FA | MODE_3D_ENABLE);
++    }
++  }
++  else
++  {
++    SetFramepackingSupport(false);
++    Set3dVideoMode(MODE_3D_DISABLE);
++  }
++
++
+ #if 1
+   std::string s_dst_rect = StringUtils::Format("%i,%i,%i,%i",
+     (int)dst_rect.x1, (int)dst_rect.y1,
+-- 
+2.28.0
+

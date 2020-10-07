@@ -1,0 +1,33 @@
+From 850ce1b2a49e41cf484f1e696a23e65add9a3f20 Mon Sep 17 00:00:00 2001
+From: popcornmix <popcornmix@gmail.com>
+Date: Fri, 8 Sep 2017 12:17:34 +0100
+Subject: [PATCH 03/41] DVDInputStreamBluray: Possible fix for 3D main movie
+ playback
+
+Thanks to -DH-
+---
+ .../VideoPlayer/DVDInputStreams/DVDInputStreamBluray.cpp  | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamBluray.cpp b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamBluray.cpp
+index a431f407bb..d48f65638d 100644
+--- a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamBluray.cpp
++++ b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamBluray.cpp
+@@ -177,10 +177,10 @@ bool CDVDInputStreamBluray::Open()
+   }
+   else if (m_item.IsDiscImage())
+   {
+-    if (!OpenStream(m_item))
+-      return false;
+-
+-    openStream = true;
++    CURL url("udf://");
++    url.SetHostName(strPath);
++    root = url.Get();
++    filename = "index.bdmv";
+   }
+   else if (m_item.IsProtectedBlurayDisc())
+   {
+-- 
+2.28.0
+

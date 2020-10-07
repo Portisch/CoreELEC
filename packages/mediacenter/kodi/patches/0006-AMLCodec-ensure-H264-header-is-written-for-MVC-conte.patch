@@ -1,0 +1,29 @@
+From 739e7ee416e32f3a5d3a9061fd1f0a0f0c53fb3a Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Sat, 3 Aug 2019 20:46:36 +0100
+Subject: [PATCH 06/41] AMLCodec: ensure H264 header is written for MVC content
+ too
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index f7fdc43696..ab874b9354 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -1177,7 +1177,9 @@ int pre_header_feeding(am_private_t *para, am_packet_t *pkt)
+             }
+         }
+ 
+-        if (VFORMAT_H264 == para->video_format || VFORMAT_H264_4K2K == para->video_format) {
++        if (VFORMAT_H264 == para->video_format ||
++            VFORMAT_H264MVC == para->video_format ||
++            VFORMAT_H264_4K2K == para->video_format) {
+             ret = h264_write_header(para, pkt);
+             if (ret != PLAYER_SUCCESS) {
+                 return ret;
+-- 
+2.28.0
+

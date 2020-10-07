@@ -1,0 +1,44 @@
+From e87e07aec40db0b90aefce76c7c1c98a29efda33 Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Sat, 3 Aug 2019 20:46:15 +0100
+Subject: [PATCH 05/41] AMLCodec: fix identification of MVC content
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index 6ef7de6a10..f7fdc43696 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -401,12 +401,10 @@ static vformat_t codecid_to_vformat(enum AVCodecID id)
+     case AV_CODEC_ID_H264:
+       format = VFORMAT_H264;
+       break;
+-    /*
+-    case AV_CODEC_ID_H264MVC:
++    case AV_CODEC_ID_H264_MVC:
+       // H264 Multiview Video Coding (3d blurays)
+       format = VFORMAT_H264MVC;
+       break;
+-    */
+     case AV_CODEC_ID_MJPEG:
+       format = VFORMAT_MJPEG;
+       break;
+@@ -498,11 +496,9 @@ static vdec_type_t codec_tag_to_vdec_type(unsigned int codec_tag)
+       // h264
+       dec_type = VIDEO_DEC_FORMAT_H264;
+       break;
+-    /*
+-    case AV_CODEC_ID_H264MVC:
++    case AV_CODEC_ID_H264_MVC:
+       dec_type = VIDEO_DEC_FORMAT_H264;
+       break;
+-    */
+     case AV_CODEC_ID_RV30:
+     case CODEC_TAG_RV30:
+       // realmedia 3
+-- 
+2.28.0
+

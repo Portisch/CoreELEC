@@ -1,0 +1,67 @@
+From 356397dc30f2945043c7025172249017676b0427 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <afedchin@ruswizards.com>
+Date: Tue, 7 Jul 2020 06:06:37 +0200
+Subject: [PATCH 02/41] DemuxFFmpeg: Properly demuxing h264_mvc streams.
+
+---
+ .../DVDDemuxers/DVDDemuxFFmpeg.cpp            | 23 ++++++++++++++++++-
+ 1 file changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
+index b709b65ad2..aaf2e86b81 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
+@@ -15,6 +15,7 @@
+ #include "commons/Exception.h"
+ #include "cores/FFmpeg.h"
+ #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h" // for DVD_TIME_BASE
++#include "DVDCodecs/DVDCodecUtils.h"
+ #include "DVDDemuxUtils.h"
+ #include "DVDInputStreams/DVDInputStream.h"
+ #include "DVDInputStreams/DVDInputStreamFFmpeg.h"
+@@ -1478,6 +1479,15 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
+     {
+       case AVMEDIA_TYPE_AUDIO:
+       {
++        if (pStream->codec->codec_id == AV_CODEC_ID_H264_MVC)
++        {
++          // ignore MVC extension streams, they are handled specially
++          stream = new CDemuxStream();
++          stream->type = STREAM_DATA;
++          stream->disabled = true;
++          pStream->need_parsing = AVSTREAM_PARSE_NONE;
++          break;
++        }
+         CDemuxStreamAudioFFmpeg* st = new CDemuxStreamAudioFFmpeg(pStream);
+         stream = st;
+         st->iChannels = pStream->codecpar->channels;
+@@ -1508,7 +1518,7 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
+           st->bVFR = false;
+ 
+         // never trust pts in avi files with h264.
+-        if (m_bAVI && pStream->codecpar->codec_id == AV_CODEC_ID_H264)
++        if (m_bAVI && (pStream->codecpar->codec_id == AV_CODEC_ID_H264 || pStream->codecpar->codec_id == AV_CODEC_ID_H264_MVC))
+           st->bPTSInvalid = true;
+ 
+         AVRational r_frame_rate = pStream->r_frame_rate;
+@@ -1610,6 +1620,17 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
+         if (av_dict_get(pStream->metadata, "title", NULL, 0))
+           st->m_description = av_dict_get(pStream->metadata, "title", NULL, 0)->value;
+ 
++        if (pStream->codec->codec_id == AV_CODEC_ID_H264)
++        {
++          if (CDVDCodecUtils::IsH264AnnexB(m_pFormatContext->iformat->name, pStream))
++          {
++            // TODO
++          }
++          else if (CDVDCodecUtils::ProcessH264MVCExtradata(pStream->codec->extradata, pStream->codec->extradata_size))
++          {
++            pStream->codecpar->codec_tag = MKTAG('M', 'V', 'C', '1');
++          }
++        }
+         break;
+       }
+       case AVMEDIA_TYPE_DATA:
+-- 
+2.28.0
+

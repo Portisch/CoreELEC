@@ -1,0 +1,57 @@
+From 3ee978a13f2b286cdd483f3e711fa781f1900a69 Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Sat, 3 Aug 2019 21:18:19 +0100
+Subject: [PATCH 19/41] GraphicContext: add support for 3D MVC output modes
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ xbmc/windowing/GraphicContext.cpp | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/windowing/GraphicContext.cpp b/xbmc/windowing/GraphicContext.cpp
+index 7a37ce2851..b9dbebd60e 100644
+--- a/xbmc/windowing/GraphicContext.cpp
++++ b/xbmc/windowing/GraphicContext.cpp
+@@ -257,6 +257,13 @@ CPoint CGraphicContext::StereoCorrection(const CPoint &point) const
+     if(m_stereoView == RENDER_STEREO_VIEW_RIGHT)
+       res.y += info.iHeight + info.iBlanking;
+   }
++  if (m_stereoMode == RENDER_STEREO_MODE_HARDWAREBASED)
++  {
++    const RESOLUTION_INFO info = GetResInfo();
++
++    if(m_stereoView == RENDER_STEREO_VIEW_RIGHT)
++      res.y += info.iHeight + info.iBlanking;
++  }
+   if(m_stereoMode == RENDER_STEREO_MODE_SPLIT_VERTICAL)
+   {
+     const RESOLUTION_INFO info = GetResInfo();
+@@ -432,7 +439,7 @@ void CGraphicContext::SetVideoResolutionInternal(RESOLUTION res, bool forceUpdat
+   float origFPSOverride = m_fFPSOverride;
+ 
+   UpdateInternalStateWithResolution(res);
+-  RESOLUTION_INFO info_org  = CDisplaySettings::GetInstance().GetResolutionInfo(res);
++  RESOLUTION_INFO info_org  = GetResInfo(res);
+ 
+   bool switched = false;
+   if (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fullScreen)
+@@ -617,6 +624,16 @@ const RESOLUTION_INFO CGraphicContext::GetResInfo(RESOLUTION res) const
+     info.iSubtitles       = (info.iSubtitles      - info.iBlanking) / 2;
+   }
+ 
++  if (m_stereoMode == RENDER_STEREO_MODE_HARDWAREBASED)
++  {
++    if((info.dwFlags & D3DPRESENTFLAG_MODE3DTB) == 0)
++    {
++      info.iBlanking      = info.iHeight == 1080 ? 45 : 30;
++      info.iScreenHeight  = info.iHeight * 2 + info.iBlanking;
++      info.dwFlags       |= D3DPRESENTFLAG_MODE3DTB;
++    }
++  }
++
+   if(m_stereoMode == RENDER_STEREO_MODE_SPLIT_VERTICAL)
+   {
+     if((info.dwFlags & D3DPRESENTFLAG_MODE3DSBS) == 0)
+-- 
+2.28.0
+

@@ -1,0 +1,44 @@
+From a45c764f4e945f3ea5304df35cb93c09fea5a1e2 Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Wed, 21 Aug 2019 18:06:44 +0100
+Subject: [PATCH 23/41] AMLUtils: toggle TMDS during resolution set
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ xbmc/utils/AMLUtils.cpp | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/utils/AMLUtils.cpp b/xbmc/utils/AMLUtils.cpp
+index 6f046cc5ec..d37c187694 100644
+--- a/xbmc/utils/AMLUtils.cpp
++++ b/xbmc/utils/AMLUtils.cpp
+@@ -533,7 +533,7 @@ bool aml_get_native_resolution(RESOLUTION_INFO *res)
+   return result;
+ }
+ 
+-static void aml_enable_PHY(const int stereo_mode, bool enable)
++static void aml_enable_PHY(bool enable)
+ {
+     SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/phy", enable ? "1" : "0");
+ }
+@@ -542,11 +542,14 @@ bool aml_set_native_resolution(const RESOLUTION_INFO &res, std::string framebuff
+ {
+   bool result = false;
+ 
+-  aml_handle_display_stereo_mode(RENDER_STEREO_MODE_OFF);
+-  result = aml_set_display_resolution(res, framebuffer_name);
++  aml_enable_PHY(false);
+ 
+-  aml_handle_scale(res);
+   aml_handle_display_stereo_mode(stereo_mode);
++  result = aml_set_display_resolution(res, framebuffer_name);
++  aml_handle_scale(res);
++
++  aml_enable_PHY(true);
++
+ 
+   return result;
+ }
+-- 
+2.28.0
+

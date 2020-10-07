@@ -1,0 +1,48 @@
+From 124b722570ad5ef49549a1e766362cae71a8adb0 Mon Sep 17 00:00:00 2001
+From: tanio99 <tanio99@wolke7.net>
+Date: Wed, 4 Sep 2019 18:22:11 +0200
+Subject: [PATCH 36/41] CDVDOverlayCodecFFmpeg: ensure ALIGN_VIDEO will be
+ chosen for PGS subtitles
+
+---
+ .../DVDCodecs/Overlay/DVDOverlayCodecFFmpeg.cpp | 17 ++++++++++++++---
+ 1 file changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayCodecFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayCodecFFmpeg.cpp
+index cd51247b09..91e465b5ad 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayCodecFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayCodecFFmpeg.cpp
+@@ -232,7 +232,8 @@ CDVDOverlay* CDVDOverlayCodecFFmpeg::GetOverlay()
+     }
+ 
+     RENDER_STEREO_MODE render_stereo_mode = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
+-    if (render_stereo_mode != RENDER_STEREO_MODE_OFF)
++    if (render_stereo_mode != RENDER_STEREO_MODE_OFF &&
++        m_pCodecContext->codec_id != AV_CODEC_ID_HDMV_PGS_SUBTITLE)
+     {
+       if (rect.h > m_height / 2)
+       {
+@@ -261,8 +262,18 @@ CDVDOverlay* CDVDOverlayCodecFFmpeg::GetOverlay()
+     overlay->height   = rect.h;
+     overlay->bForced  = rect.flags != 0;
+ 
+-    overlay->source_width  = m_width;
+-    overlay->source_height = m_height;
++    if (m_pCodecContext->codec_id == AV_CODEC_ID_HDMV_PGS_SUBTITLE)
++    {
++      // For PGS subtitles we don't set source_width and source_height here.
++      // Later this will lead to 'video alignment' being chosen for that subtitle.
++      overlay->source_width  = 0;
++      overlay->source_height = 0;
++    }
++    else
++    {
++      overlay->source_width  = m_width;
++      overlay->source_height = m_height;
++    }
+ 
+     uint8_t* s = rect.data[0];
+     uint8_t* t = overlay->data;
+-- 
+2.28.0
+

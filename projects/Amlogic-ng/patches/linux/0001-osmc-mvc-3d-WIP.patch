@@ -1,0 +1,634 @@
+From 16287e976edc37b110c933977653eef38df0dc8a Mon Sep 17 00:00:00 2001
+From: Raybuntu <57228613+Raybuntu@users.noreply.github.com>
+Date: Wed, 1 Jul 2020 10:25:23 +0200
+Subject: [PATCH] osmc mvc 3d WIP
+
+---
+ drivers/amlogic/media/video_sink/amvideocap.c |  10 +
+ drivers/amlogic/media/video_sink/video.c      |  43 ++++-
+ drivers/amlogic/media/video_sink/video_hw.c   |  49 ++++-
+ drivers/amlogic/media/video_sink/video_priv.h |   5 +
+ drivers/amlogic/media/video_sink/vpp.c        |  11 +-
+ .../vout/hdmitx/hdmi_common/hdmi_parameters.c | 177 ++++++++++++++++--
+ .../vout/hdmitx/hdmi_tx_20/hdmi_tx_edid.c     |  18 ++
+ .../vout/hdmitx/hdmi_tx_20/hdmi_tx_main.c     |  28 +--
+ include/linux/amlogic/media/video_sink/vpp.h  |   3 +
+ 9 files changed, 296 insertions(+), 48 deletions(-)
+
+diff --git a/drivers/amlogic/media/video_sink/amvideocap.c b/drivers/amlogic/media/video_sink/amvideocap.c
+index 0a2ead6a3ed2..4687e28c95b4 100644
+--- a/drivers/amlogic/media/video_sink/amvideocap.c
++++ b/drivers/amlogic/media/video_sink/amvideocap.c
+@@ -239,6 +239,14 @@ static int amvideocap_get_input_format(struct vframe_s *vf)
+ 		pr_debug
+ 		("****************Into VIDTYPE_VIU_NV21******************\n");
+ 		format = GE2D_FORMAT_M24_NV21;
++	} else if ((vf->type & VIDTYPE_MVC) == VIDTYPE_MVC) {
++		pr_debug
++		("****************Into VIDTYPE_MVC******************\n");
++		format = GE2D_FORMAT_M24_YUV420;
++	} else if ((vf->type & VIDTYPE_VIU_FIELD) == VIDTYPE_VIU_FIELD) {
++		pr_debug
++		("****************Into VIDTYPE_VIU_FIELD******************\n");
++		format = GE2D_FORMAT_M24_YUV420;
+ 	}
+ 	return format;
+ }
+@@ -375,6 +383,8 @@ static ssize_t amvideocap_YUV_to_RGB(
+ 	} else if (is_meson_g9tv_cpu() || is_meson_gxtvbb_cpu()) {
+ 		if (vf->type_original & VIDTYPE_INTERLACE)
+ 			input_height = input_height / 2;
++	} else if (vf->type & VIDTYPE_MVC) {
++		input_height = vf->left_eye.height;
+ 	} else {
+ 		if (intfmt == GE2D_FORMAT_S16_YUV422)
+ 			input_height = input_height / 2;
+diff --git a/drivers/amlogic/media/video_sink/video.c b/drivers/amlogic/media/video_sink/video.c
+index e75ec4ab5a83..71592e361fe6 100644
+--- a/drivers/amlogic/media/video_sink/video.c
++++ b/drivers/amlogic/media/video_sink/video.c
+@@ -329,7 +329,7 @@ MODULE_PARM_DESC(disable_dv_drop, "\n disable_dv_drop\n");
+ module_param(disable_dv_drop, uint, 0664);
+ 
+ static unsigned int video_3d_format;
+-static unsigned int mvc_flag;
++unsigned int mvc_flag;
+ unsigned int force_3d_scaler = 3;
+ static int mode_3d_changed;
+ static int last_mode_3d;
+@@ -874,6 +874,20 @@ s32 di_request_afbc_hw(u8 id, bool on)
+ }
+ EXPORT_SYMBOL(di_request_afbc_hw);
+ 
++/*********************************************************/
++
++int is_need_mvc_to_sbs_output(void)
++{
++	return cur_dispbuf && (cur_dispbuf->type & VIDTYPE_MVC)
++		&& (process_3d_type & MODE_3D_MVC_TO_SBS) == MODE_3D_MVC_TO_SBS;
++}
++
++int is_need_mvc_to_tab_output(void)
++{
++	return cur_dispbuf && (cur_dispbuf->type & VIDTYPE_MVC)
++		&& (process_3d_type & MODE_3D_MVC_TO_TAB) == MODE_3D_MVC_TO_TAB;
++}
++
+ /*********************************************************/
+ static inline struct vframe_s *pip_vf_peek(void)
+ {
+@@ -988,7 +1002,7 @@ static inline struct vframe_s *video_vf_get(void)
+ 		/*can be moved to h264mvc.c */
+ 		if ((vf->type & VIDTYPE_MVC)
+ 		    && (process_3d_type & MODE_3D_ENABLE) && vf->trans_fmt) {
+-			vf->type = VIDTYPE_PROGRESSIVE | VIDTYPE_VIU_FIELD;
++			vf->type = VIDTYPE_PROGRESSIVE | VIDTYPE_MVC;
+ 			process_3d_type |= MODE_3D_MVC;
+ 			mvc_flag = 1;
+ 		} else {
+@@ -3111,7 +3125,8 @@ static s32 primary_render_frame(struct video_layer_s *layer)
+ 			/* vdin interlace non afbc frame case height/2 */
+ 			zoom_start_y /= 2;
+ 			zoom_end_y = ((zoom_end_y + 1) >> 1) - 1;
+-		} else if (layer->dispbuf->type & VIDTYPE_MVC) {
++		} else if ((layer->dispbuf->type & VIDTYPE_MVC) &&
++		    !is_need_mvc_to_sbs_output()) {
+ 			/* mvc case, (height - blank)/2 */
+ 			if (framepacking_support)
+ 				blank = framepacking_blank;
+@@ -5103,9 +5118,14 @@ int _video_set_disable(u32 val)
+ 		layer->disable_video = VIDEO_DISABLE_NONE;
+ 
+ 	if (layer->disable_video != VIDEO_DISABLE_NONE) {
+-		pr_info("VID: VD1 off\n");
+-		safe_switch_videolayer(
+-			layer->layer_id, false, true);
++		u8 layer_id = layer->layer_id;
++
++		if (layer->dispbuf &&
++		    layer->dispbuf->type & VIDTYPE_MVC) {
++			// for MVC turn off all layers
++			layer_id = 0xff;
++		}
++		safe_switch_videolayer(layer->layer_id, false, true);
+ 
+ 		if ((layer->disable_video ==
+ 		     VIDEO_DISABLE_FORNEXT) &&
+@@ -5120,9 +5140,14 @@ int _video_set_disable(u32 val)
+ 	} else {
+ 		if (layer->dispbuf &&
+ 		    !is_local_vf(layer->dispbuf)) {
+-			safe_switch_videolayer(
+-				layer->layer_id, true, true);
+-			pr_info("VID: VD1 on\n");
++			u8 layer_id = layer->layer_id;
++
++			if (layer->dispbuf &&
++			    layer->dispbuf->type & VIDTYPE_MVC) {
++				// for MVC turn on all layers
++				layer_id = 0xff;
++			}
++			safe_switch_videolayer(layer->layer_id, true, true);
+ 			layer->property_changed = true;
+ 		}
+ 	}
+diff --git a/drivers/amlogic/media/video_sink/video_hw.c b/drivers/amlogic/media/video_sink/video_hw.c
+index 18b5b93ed023..adcc3d658c78 100644
+--- a/drivers/amlogic/media/video_sink/video_hw.c
++++ b/drivers/amlogic/media/video_sink/video_hw.c
+@@ -1029,7 +1029,9 @@ static void vd1_set_dcu(
+ 			pat = vpat[frame_par->vscale_skip_count >> 1];
+ 	} else if (is_mvc) {
+ 		loop = 0x11;
+-		if (framepacking_support)
++		if (framepacking_support ||
++		    is_need_mvc_to_sbs_output() ||
++		    is_need_mvc_to_tab_output())
+ 			pat = 0;
+ 		else
+ 			pat = 0x80;
+@@ -1075,7 +1077,16 @@ static void vd1_set_dcu(
+ 	}
+ 
+ 	/* picture 0/1 control */
+-	if ((((type & VIDTYPE_INTERLACE) == 0) &&
++	if ((framepacking_support ||
++	    is_need_mvc_to_sbs_output() ||
++	    is_need_mvc_to_tab_output()) &&
++	    mvc_flag) {
++		/*  frame packed output */
++		VSYNC_WR_MPEG_REG(VD1_IF0_LUMA_PSEL + vd_off, 0);
++		VSYNC_WR_MPEG_REG(VD1_IF0_CHROMA_PSEL + vd_off, 0);
++		VSYNC_WR_MPEG_REG(VD2_IF0_LUMA_PSEL + vd_off, 0);
++		VSYNC_WR_MPEG_REG(VD2_IF0_CHROMA_PSEL + vd_off, 0);
++	} else if ((((type & VIDTYPE_INTERLACE) == 0) &&
+ 	     ((type & VIDTYPE_VIU_FIELD) == 0) &&
+ 	     ((type & VIDTYPE_MVC) == 0)) ||
+ 	    (frame_par->vpp_2pic_mode & 0x3)) {
+@@ -2898,6 +2909,7 @@ static void get_3d_vert_pos(
+ 	} else if (vpp_3d_mode == VPP_3D_MODE_FA) {
+ 		/*same width same heiht */
+ 		if ((process_3d_type & MODE_3D_TO_2D_MASK) ||
++		    (process_3d_type & MODE_3D_MVC) ||
+ 		    (process_3d_type & MODE_3D_OUT_LR)) {
+ 			*ls = layer->start_y_lines;
+ 			*le = layer->end_y_lines;
+@@ -2905,9 +2917,9 @@ static void get_3d_vert_pos(
+ 			*re = layer->end_y_lines;
+ 		} else {
+ 			*ls = (layer->start_y_lines + crop_sy) >> 1;
+-			*le = (layer->end_y_lines + crop_ey) >> 1;
++			*le = (layer->end_y_lines - crop_ey) >> 1;
+ 			*rs = (layer->start_y_lines + crop_sy) >> 1;
+-			*re = (layer->end_y_lines + crop_ey) >> 1;
++			*re = (layer->end_y_lines - crop_ey) >> 1;
+ 		}
+ 	} else if (vpp_3d_mode == VPP_3D_MODE_LA) {
+ 		if ((process_3d_type & MODE_3D_OUT_FA_MASK) ||
+@@ -2998,7 +3010,13 @@ s32 config_3d_vd2_blend(
+ 	y_lines = layer->end_y_lines /
+ 		(cur_frame_par->vscale_skip_count + 1);
+ 
+-	if (process_3d_type & MODE_3D_OUT_TB) {
++	if (process_3d_type & MODE_3D_MVC && is_need_mvc_to_tab_output()) {
++		setting->postblend_h_start = layer->start_x_lines;
++		setting->postblend_h_end = layer->end_x_lines;
++		setting->postblend_v_start = y_lines + 1;
++		setting->postblend_v_end = (y_lines << 1) + 1;
++		layer->sc_setting.sc_v_enable = true;
++	} else if (process_3d_type & MODE_3D_OUT_TB) {
+ 		setting->postblend_h_start =
+ 			layer->start_x_lines;
+ 		setting->postblend_h_end =
+@@ -3169,7 +3187,13 @@ void switch_3d_view_per_vsync(
+ 
+ 	if ((process_3d_type & MODE_3D_OUT_TB) ||
+ 	    (process_3d_type & MODE_3D_OUT_LR)) {
+-		if (cur_frame_par->vpp_2pic_mode & VPP_PIC1_FIRST) {
++		if (is_need_mvc_to_sbs_output() ||
++		    is_need_mvc_to_tab_output()) {
++			VSYNC_WR_MPEG_REG(VD1_IF0_LUMA_PSEL + vd_off, 0);
++			VSYNC_WR_MPEG_REG(VD1_IF0_CHROMA_PSEL + vd_off, 0);
++			VSYNC_WR_MPEG_REG(VD2_IF0_LUMA_PSEL + vd_off, 0);
++			VSYNC_WR_MPEG_REG(VD2_IF0_CHROMA_PSEL + vd_off, 0);
++		} else if (cur_frame_par->vpp_2pic_mode & VPP_PIC1_FIRST) {
+ 			VSYNC_WR_MPEG_REG(
+ 				VD1_IF0_LUMA_PSEL + vd_off,
+ 				0x4000000);
+@@ -3437,7 +3461,8 @@ s32 config_vd_blend(
+ 	}
+ #ifdef TV_3D_FUNCTION_OPEN
+ 	if (setting->id == 0) {
+-		if (process_3d_type & MODE_3D_OUT_TB) {
++		if ((process_3d_type & MODE_3D_OUT_TB) &&
++		    !is_need_mvc_to_tab_output()) {
+ 			setting->preblend_h_start =
+ 				cur_frame_par->VPP_hd_start_lines_;
+ 			setting->preblend_h_end =
+@@ -3454,6 +3479,14 @@ s32 config_vd_blend(
+ 				cur_frame_par->VPP_vd_start_lines_;
+ 			setting->preblend_v_end =
+ 				cur_frame_par->VPP_vd_end_lines_;
++		} else if (process_3d_type & MODE_3D_MVC) {
++			setting->preblend_h_start =
++				cur_frame_par->VPP_hd_start_lines_;
++			setting->preblend_h_end = x_lines;
++			setting->preblend_v_start =
++				cur_frame_par->VPP_vd_start_lines_;
++			setting->preblend_v_end =
++				cur_frame_par->VPP_vd_end_lines_;
+ 		}
+ 	}
+ #endif
+@@ -4369,6 +4402,8 @@ s32 layer_swap_frame(
+ 		    (layer->disable_video !=
+ 		     VIDEO_DISABLE_NORMAL))
+ 			enable_layer = true;
++		if (vf->type & VIDTYPE_MVC)
++			enable_layer = true;
+ 		if (enable_layer) {
+ 			if (layer->layer_id == 0)
+ 				enable_video_layer();
+diff --git a/drivers/amlogic/media/video_sink/video_priv.h b/drivers/amlogic/media/video_sink/video_priv.h
+index 108a3fafacbc..41056943578e 100644
+--- a/drivers/amlogic/media/video_sink/video_priv.h
++++ b/drivers/amlogic/media/video_sink/video_priv.h
+@@ -381,7 +381,12 @@ int video_hw_init(void);
+ int video_early_init(void);
+ int video_late_uninit(void);
+ 
++extern void dump_some_registers(void);
++extern int is_need_mvc_to_sbs_output(void);
++extern int is_need_mvc_to_tab_output(void);
++
+ /* from video.c */
++extern unsigned int mvc_flag;
+ extern u32 osd_vpp_misc;
+ extern u32 osd_vpp_misc_mask;
+ extern bool update_osd_vpp_misc;
+diff --git a/drivers/amlogic/media/video_sink/vpp.c b/drivers/amlogic/media/video_sink/vpp.c
+index cab5cc258825..d51757ea5a9f 100644
+--- a/drivers/amlogic/media/video_sink/vpp.c
++++ b/drivers/amlogic/media/video_sink/vpp.c
+@@ -2545,7 +2545,8 @@ static void vpp_get_video_source_size(
+ 			next_frame_par->vpp_3d_mode = VPP_3D_MODE_TB;
+ 			/*just for mvc 3d file */
+ 			if (process_3d_type & MODE_3D_MVC) {
+-				next_frame_par->vpp_2pic_mode = 2;
++				next_frame_par->vpp_2pic_mode =
++					(process_3d_type & MODE_3D_TO_2D_MASK) ? 0 : 2;
+ 				next_frame_par->vpp_3d_mode = VPP_3D_MODE_FA;
+ 			}
+ 			break;
+@@ -2650,6 +2651,14 @@ static void vpp_get_video_source_size(
+ 			*src_width = frame_width << 1;
+ 			*src_height = frame_height;
+ 			next_frame_par->vpp_2pic_mode = 2;
++		} else if (process_3d_type & MODE_3D_OUT_TB) {
++			*src_width = vf->width;
++			*src_height = vf->height << 1;
++			next_frame_par->vpp_2pic_mode = 2;
++		} else if (process_3d_type & MODE_3D_MVC) {
++			*src_width = vf->width;
++			*src_height = vf->height;
++			next_frame_par->vpp_2pic_mode = 2;
+ 		} else {
+ 			*src_width = frame_width;
+ 			*src_height = frame_height << 1;
+diff --git a/drivers/amlogic/media/vout/hdmitx/hdmi_common/hdmi_parameters.c b/drivers/amlogic/media/vout/hdmitx/hdmi_common/hdmi_parameters.c
+index 6787bd05b24e..0e1ee1b71ee0 100644
+--- a/drivers/amlogic/media/vout/hdmitx/hdmi_common/hdmi_parameters.c
++++ b/drivers/amlogic/media/vout/hdmitx/hdmi_common/hdmi_parameters.c
+@@ -2584,6 +2584,155 @@ static struct hdmi_format_para fmt_para_vesa_2560x1600p60_8x5 = {
+ 	},
+ };
+ 
++/* 3D Frame Packing Modes */
++
++static struct hdmi_format_para fmt_para_1920x1080fp24_16x9 = {
++	.vic = HDMI_1920x1080p24_16x9,
++	.name = "1920x1080fp24hz",
++	.sname = "1080fp24hz",
++	.pixel_repetition_factor = 0,
++	.progress_mode = 1,
++	.scrambler_en = 0,
++	.tmds_clk_div40 = 0,
++	.tmds_clk = 148500,
++	.timing = {
++		.pixel_freq = 148500,
++		.frac_freq = 148352,
++		.h_freq = 27000,
++		.v_freq = 24000,
++		.vsync_polarity = 1,
++		.hsync_polarity = 1,
++		.h_active = 1920,
++		.h_total = 2750,
++		.h_blank = 830,
++		.h_front = 638,
++		.h_sync = 44,
++		.h_back = 148,
++		.v_active = 1080,
++		.v_total = 1125 * 2,
++		.v_blank = 45,
++		.v_front = 4,
++		.v_sync = 5,
++		.v_back = 36,
++		.v_sync_ln = 1,
++	},
++	.hdmitx_vinfo = {
++		.name              = "1080fp24hz",
++		.mode              = VMODE_HDMI,
++		.width             = 1920,
++		.height            = 1080 + 1125,
++		.field_height      = 1080 + 1125,
++		.aspect_ratio_num  = 16,
++		.aspect_ratio_den  = 9,
++		.sync_duration_num = 24,
++		.sync_duration_den = 1,
++		.video_clk         = 148500000,
++		.htotal            = 2750,
++		.vtotal            = 1125 * 2,
++		.fr_adj_type       = VOUT_FR_ADJ_HDMI,
++		.viu_color_fmt     = COLOR_FMT_YUV444,
++		.viu_mux           = VIU_MUX_ENCP,
++	},
++};
++
++static struct hdmi_format_para fmt_para_1280x720fp60_16x9 = {
++	.vic = HDMI_1280x720p60_16x9,
++	.name = "1280x720fp60hz",
++	.sname = "720fp60hz",
++	.pixel_repetition_factor = 0,
++	.progress_mode = 1,
++	.scrambler_en = 0,
++	.tmds_clk_div40 = 0,
++	.tmds_clk = 148500,
++	.timing = {
++		.pixel_freq = 148500,
++		.frac_freq = 148352,
++		.h_freq = 45000,
++		.v_freq = 60000,
++		.vsync_polarity = 1,
++		.hsync_polarity = 1,
++		.h_active = 1280,
++		.h_total = 1650,
++		.h_blank = 370,
++		.h_front = 110,
++		.h_sync = 40,
++		.h_back = 220,
++		.v_active = 720,
++		.v_total = 750 * 2,
++		.v_blank = 30,
++		.v_front = 5,
++		.v_sync = 5,
++		.v_back = 20,
++		.v_sync_ln = 1,
++	},
++	.hdmitx_vinfo = {
++		.name              = "720fp60hz",
++		.mode              = VMODE_HDMI,
++		.width             = 1280,
++		.height            = 720 + 750,
++		.field_height      = 720 + 750,
++		.aspect_ratio_num  = 16,
++		.aspect_ratio_den  = 9,
++		.sync_duration_num = 60,
++		.sync_duration_den = 1,
++		.video_clk         = 148500000,
++		.htotal            = 1650,
++		.vtotal            = 750 * 2,
++		.fr_adj_type       = VOUT_FR_ADJ_HDMI,
++		.viu_color_fmt     = COLOR_FMT_YUV444,
++		.viu_mux           = VIU_MUX_ENCP,
++	},
++};
++
++static struct hdmi_format_para fmt_para_1280x720fp50_16x9 = {
++	.vic = HDMI_1280x720p50_16x9,
++	.name = "1280x720fp50hz",
++	.sname = "720fp50hz",
++	.pixel_repetition_factor = 0,
++	.progress_mode = 1,
++	.scrambler_en = 0,
++	.tmds_clk_div40 = 0,
++	.tmds_clk = 148500,
++	.timing = {
++		.pixel_freq = 148500,
++		.h_freq = 37500,
++		.v_freq = 50000,
++		.vsync_polarity = 1,
++		.hsync_polarity = 1,
++		.h_active = 1280,
++		.h_total = 1980,
++		.h_blank = 700,
++		.h_front = 440,
++		.h_sync = 40,
++		.h_back = 220,
++		.v_active = 720,
++		.v_total = 750 * 2,
++		.v_blank = 30,
++		.v_front = 5,
++		.v_sync = 5,
++		.v_back = 20,
++		.v_sync_ln = 1,
++	},
++	.hdmitx_vinfo = {
++		.name              = "720fp50hz",
++		.mode              = VMODE_HDMI,
++		.width             = 1280,
++		.height            = 720 + 750,
++		.field_height      = 720 + 750,
++		.aspect_ratio_num  = 16,
++		.aspect_ratio_den  = 9,
++		.sync_duration_num = 50,
++		.sync_duration_den = 1,
++		.video_clk         = 148500000,
++		.htotal            = 1980,
++		.vtotal            = 750 * 2,
++		.fr_adj_type       = VOUT_FR_ADJ_HDMI,
++		.viu_color_fmt     = COLOR_FMT_YUV444,
++		.viu_mux           = VIU_MUX_ENCP,
++	},
++};
++
++
+ static struct hdmi_format_para *all_fmt_paras[] = {
+ 	&fmt_para_3840x2160p60_16x9,
+ 	&fmt_para_3840x2160p50_16x9,
+@@ -2637,6 +2786,11 @@ static struct hdmi_format_para *all_fmt_paras[] = {
+ 	&fmt_para_vesa_1920x1200p60_8x5,
+ 	&fmt_para_vesa_2160x1200p90_9x5,
+ 	&fmt_para_vesa_2560x1600p60_8x5,
++	/* 3D frame packing modes */
++	&fmt_para_1920x1080fp24_16x9,
++	&fmt_para_1280x720fp60_16x9,
++	&fmt_para_1280x720fp50_16x9,
++	/* */
+ 	&fmt_para_null_hdmi_fmt,
+ 	&fmt_para_non_hdmi_fmt,
+ 	NULL,
+@@ -2933,32 +3087,17 @@ struct vinfo_s *hdmi_get_valid_vinfo(char *mode)
+ 		memset(mode_, 0, sizeof(mode_));
+ 		strncpy(mode_, mode, sizeof(mode_));
+ 
+-		/* skip "f", 1080fp60hz -> 1080p60hz for 3d */
+-		mode_[31] = '\0';
+-		if (strstr(mode_, "fp")) {
+-			int i = 0;
+-
+-			for (; mode_[i]; i++) {
+-				if ((mode_[i] == 'f') &&
+-					(mode_[i + 1] == 'p')) {
+-					do {
+-						mode_[i] = mode_[i + 1];
+-						i++;
+-					} while (mode_[i]);
+-					break;
+-				}
+-			}
+-		}
+-
+ 		for (i = 0; i < sizeof(mode_); i++)
+-			if (mode_[i] == 10)
++			if (mode_[i] == 10) {
+ 				mode_[i] = 0;
++				break;
++			}
+ 
+ 		for (i = 0; all_fmt_paras[i]; i++) {
+ 			if (all_fmt_paras[i]->hdmitx_vinfo.mode == VMODE_MAX)
+ 				continue;
+ 			if (strncmp(all_fmt_paras[i]->hdmitx_vinfo.name, mode_,
+-				strlen(mode_)) == 0) {
++				strlen(all_fmt_paras[i]->hdmitx_vinfo.name)) == 0) {
+ 				info = &all_fmt_paras[i]->hdmitx_vinfo;
+ 				break;
+ 			}
+diff --git a/drivers/amlogic/media/vout/hdmitx/hdmi_tx_20/hdmi_tx_edid.c b/drivers/amlogic/media/vout/hdmitx/hdmi_tx_20/hdmi_tx_edid.c
+index 2b2720df26a2..32e37bb588d4 100644
+--- a/drivers/amlogic/media/vout/hdmitx/hdmi_tx_20/hdmi_tx_edid.c
++++ b/drivers/amlogic/media/vout/hdmitx/hdmi_tx_20/hdmi_tx_edid.c
+@@ -1439,6 +1439,24 @@ static int hdmitx_edid_3d_parse(struct rx_cap *prxcap, unsigned char *dat,
+ 		pos += 1;
+ 		prxcap->hdmi_vic_LEN = dat[pos] >> 5;
+ 		prxcap->HDMI_3D_LEN = dat[pos] & 0x1f;
++
++		/* mandatory formats HDMI 1.4b 8.3.2 */
++		for (j = 0; (j < 16) && (j < prxcap->VIC_count); j++) {
++			if (prxcap->VIC[j] == HDMI_1920x1080p24_16x9 ||
++			    prxcap->VIC[j] == HDMI_1280x720p60_16x9 ||
++			    prxcap->VIC[j] == HDMI_1280x720p50_16x9) {
++				prxcap->support_3d_format[prxcap->VIC[j]].frame_packing = 1;
++				prxcap->support_3d_format[prxcap->VIC[j]].top_and_bottom = 1;
++			}
++			if (prxcap->VIC[j] == HDMI_1920x1080i60_16x9 ||
++			    prxcap->VIC[j] == HDMI_1920x1080i50_16x9) {
++				prxcap->support_3d_format[prxcap->VIC[j]].side_by_side = 1;
++			}
++		}
++
++		if (prxcap->HDMI_3D_LEN == 0)
++			return 1;
++
+ 		pos += prxcap->hdmi_vic_LEN + 1;
+ 
+ 		if (prxcap->threeD_Multi_present == 0x01) {
+diff --git a/drivers/amlogic/media/vout/hdmitx/hdmi_tx_20/hdmi_tx_main.c b/drivers/amlogic/media/vout/hdmitx/hdmi_tx_20/hdmi_tx_main.c
+index fdbb106042ef..1b1cfdc65101 100644
+--- a/drivers/amlogic/media/vout/hdmitx/hdmi_tx_20/hdmi_tx_main.c
++++ b/drivers/amlogic/media/vout/hdmitx/hdmi_tx_20/hdmi_tx_main.c
+@@ -618,6 +618,8 @@ static int set_disp_mode_auto(void)
+ 			}
+ 		}
+ 	}
++	if (hdev->flag_3dfp)
++		hdev->cur_video_param->color_depth = COLORDEPTH_24B;
+ 
+ 	/* and recover the original bitstream bitdepth */
+ 	para->cd = stream_cur_cd;
+@@ -2339,7 +2341,7 @@ static ssize_t show_config(struct device *dev,
+ 	else if (hdev->flag_3dss)
+ 		conf = "SidebySide";
+ 	else if (hdev->flag_3dtb)
+-		conf = "TopButtom";
++		conf = "TopBottom";
+ 	else
+ 		conf = "off";
+ 	pos += snprintf(buf+pos, PAGE_SIZE, "3D config: %s\n", conf);
+@@ -2374,8 +2376,8 @@ static ssize_t store_config(struct device *dev,
+ 			hdmitx_device.flag_3dtb = 0;
+ 			hdmitx_device.flag_3dss = 1;
+ 			hdmitx_device.flag_3dfp = 0;
+-			if (buf[2])
+-				ret = kstrtoul(buf+2, 10,
++			if (buf[4])
++				ret = kstrtoul(buf+4, 10,
+ 					&sub_sample_mode);
+ 			/* side by side */
+ 			hdmi_set_3d(&hdmitx_device, T3D_SBS_HALF,
+@@ -2700,8 +2702,9 @@ static ssize_t show_disp_cap_3d(struct device *dev,
+ 	int i, pos = 0;
+ 	int j = 0;
+ 	enum hdmi_vic vic;
++	char caps_3d[60];
+ 
+-	pos += snprintf(buf+pos, PAGE_SIZE, "3D support lists:\n");
++	//pos += snprintf(buf+pos, PAGE_SIZE, "3D support lists:\n");
+ 	for (i = 0; disp_mode_t[i]; i++) {
+ 		/* 3D is not supported under 4k modes */
+ 		if (strstr(disp_mode_t[i], "2160p") ||
+@@ -2709,28 +2712,29 @@ static ssize_t show_disp_cap_3d(struct device *dev,
+ 			continue;
+ 		vic = hdmitx_edid_get_VIC(&hdmitx_device,
+ 			disp_mode_t[i], 0);
++		if (vic == HDMI_Unknown)
++			continue;
+ 		for (j = 0; j < hdmitx_device.rxcap.VIC_count; j++) {
+ 			if (vic == hdmitx_device.rxcap.VIC[j])
+ 				break;
+ 		}
+-		pos += snprintf(buf+pos, PAGE_SIZE, "\n%s ",
+-			disp_mode_t[i]);
++		caps_3d[0] = 0;
+ 		if (local_support_3dfp(vic) &&
+ 		    (hdmitx_device.rxcap.support_3d_format[
+ 			hdmitx_device.rxcap.VIC[j]].frame_packing == 1)) {
+-			pos += snprintf(buf+pos, PAGE_SIZE,
+-				"FramePacking ");
++			strcat(caps_3d," FramePacking");
+ 		}
+ 		if (hdmitx_device.rxcap.support_3d_format[
+ 			hdmitx_device.rxcap.VIC[j]].top_and_bottom == 1) {
+-			pos += snprintf(buf+pos, PAGE_SIZE,
+-				"TopBottom ");
++			strcat(caps_3d," TopBottom");
+ 		}
+ 		if (hdmitx_device.rxcap.support_3d_format[
+ 			hdmitx_device.rxcap.VIC[j]].side_by_side == 1) {
+-			pos += snprintf(buf+pos, PAGE_SIZE,
+-				"SidebySide ");
++			strcat(caps_3d," SidebySide");
+ 		}
++		if (strlen(caps_3d) > 0)
++			pos += snprintf(buf+pos, PAGE_SIZE, "%s%s\n",
++				disp_mode_t[i], caps_3d);
+ 	}
+ 	pos += snprintf(buf+pos, PAGE_SIZE, "\n");
+ 
+diff --git a/include/linux/amlogic/media/video_sink/vpp.h b/include/linux/amlogic/media/video_sink/vpp.h
+index 1711ad5f6236..63b8157bed9c 100644
+--- a/include/linux/amlogic/media/video_sink/vpp.h
++++ b/include/linux/amlogic/media/video_sink/vpp.h
+@@ -282,6 +282,9 @@ struct sr_info_s {
+ 	MODE_FORCE_3D_TO_2D_LR | \
+ 	MODE_FORCE_3D_TO_2D_TB)
+ 
++#define MODE_3D_MVC_TO_SBS (MODE_3D_ENABLE | MODE_3D_OUT_LR | MODE_3D_FA)
++#define MODE_3D_MVC_TO_TAB (MODE_3D_ENABLE | MODE_3D_OUT_TB | MODE_3D_FA)
++
+ #define VPP_3D_MODE_NULL 0x0
+ #define VPP_3D_MODE_LR   0x1
+ #define VPP_3D_MODE_TB   0x2
+-- 
+2.28.0
+

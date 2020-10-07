@@ -1,0 +1,25 @@
+From 3b76c4ff63149f9e57d0b68b0924ed8c27a7b1f4 Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Tue, 7 Jul 2020 06:30:47 +0200
+Subject: [PATCH 18/41] AMLUtils: we always need to set the mode
+
+---
+ xbmc/utils/AMLUtils.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/xbmc/utils/AMLUtils.cpp b/xbmc/utils/AMLUtils.cpp
+index 63e1624c3b..6f046cc5ec 100644
+--- a/xbmc/utils/AMLUtils.cpp
++++ b/xbmc/utils/AMLUtils.cpp
+@@ -660,6 +660,8 @@ bool aml_set_display_resolution(const RESOLUTION_INFO &res, std::string framebuf
+   std::string custom_mode;
+   std::string vinfo_name;
+ 
++  SysfsUtils::SetString("/sys/class/display/mode", "null");
++
+   SysfsUtils::GetString("/sys/class/display/mode", cur_mode);
+   SysfsUtils::GetString("/sys/class/display/vinfo_name", vinfo_name);
+   SysfsUtils::GetString("/sys/class/amhdmitx/amhdmitx0/custom_mode", custom_mode);
+-- 
+2.28.0
+

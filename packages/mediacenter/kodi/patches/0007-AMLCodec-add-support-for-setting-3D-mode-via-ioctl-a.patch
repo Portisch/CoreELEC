@@ -1,0 +1,59 @@
+From 3cd0ee145aee61b1b57f1d3e06aad913f0210e2f Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Sat, 3 Aug 2019 20:48:34 +0100
+Subject: [PATCH 07/41] AMLCodec: add support for setting 3D mode via ioctl and
+ enabling framepacked output via sysfs
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ .../VideoPlayer/DVDCodecs/Video/AMLCodec.cpp  | 20 +++++++++++++++++++
+ .../VideoPlayer/DVDCodecs/Video/AMLCodec.h    |  2 ++
+ 2 files changed, 22 insertions(+)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index ab874b9354..38dc073496 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -2325,6 +2325,26 @@ void CAMLCodec::SetVideoSaturation(const int saturation)
+   SysfsUtils::SetInt("/sys/class/video/saturation", saturation);
+ }
+ 
++void CAMLCodec::Set3dVideoMode(const unsigned int mode)
++{
++  int video_fd = open("/dev/amvideo", O_RDWR);
++  if (video_fd < 0) {
++    CLog::Log(LOGERROR, "unable to open /dev/amvideo");
++    return;
++  }
++
++  if (ioctl(video_fd, AMSTREAM_IOC_SET_3D_TYPE, mode) != 0) {
++    CLog::Log(LOGERROR, "unable to set 3D video mode 0x%x", mode);
++  }
++
++  close(video_fd);
++}
++
++void CAMLCodec::SetFramepackingSupport(const bool enable)
++{
++  SysfsUtils::SetInt("/sys/module/amvideo/parameters/framepacking_support", enable ? 1 : 0);
++}
++
+ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
+ {
+   // this routine gets called every video frame
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h
+index 6f662f50a9..a42ece1d8d 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h
+@@ -60,6 +60,8 @@ private:
+   void          SetVideoContrast(const int contrast);
+   void          SetVideoBrightness(const int brightness);
+   void          SetVideoSaturation(const int saturation);
++  void          Set3dVideoMode(const unsigned int mode);
++  void          SetFramepackingSupport(const bool enable);
+   bool          OpenAmlVideo(const CDVDStreamInfo &hints);
+   void          CloseAmlVideo();
+   std::string   GetVfmMap(const std::string &name);
+-- 
+2.28.0
+

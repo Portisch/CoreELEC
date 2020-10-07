@@ -1,0 +1,128 @@
+From fce70b1cd80ff6a858b8e520990aab3abbd46087 Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Mon, 5 Aug 2019 11:38:51 +0100
+Subject: [PATCH 39/41] Add CDVDCodecUtils for ISO; do not check MVC support
+ setting
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ .../VideoPlayer/DVDCodecs/DVDCodecUtils.cpp   | 60 +++++++++++++++++++
+ .../VideoPlayer/DVDCodecs/DVDCodecUtils.h     |  5 ++
+ .../DVDInputStreams/DVDInputStreamBluray.cpp  |  2 +-
+ 3 files changed, 66 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/DVDCodecUtils.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/DVDCodecUtils.cpp
+index 604fab4fa1..216c754f30 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/DVDCodecUtils.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/DVDCodecUtils.cpp
+@@ -10,9 +10,11 @@
+ #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
+ #include "cores/FFmpeg.h"
+ #include "Util.h"
++#include <assert.h>
+ 
+ extern "C" {
+ #include <libswscale/swscale.h>
++#include <libavutil/intreadwrite.h>
+ }
+ 
+ bool CDVDCodecUtils::IsVP3CompatibleWidth(int width)
+@@ -64,3 +66,61 @@ double CDVDCodecUtils::NormalizeFrameduration(double frameduration, bool *match)
+   }
+ }
+ 
++bool CDVDCodecUtils::IsH264AnnexB(std::string format, AVStream *avstream)
++{
++  assert(avstream->codecpar->codec_id == AV_CODEC_ID_H264 || avstream->codecpar->codec_id == AV_CODEC_ID_H264_MVC);
++  if (avstream->codecpar->extradata_size < 4)
++    return true;
++  if (avstream->codecpar->extradata[0] == 1)
++    return false;
++  if (format == "avi")
++  {
++    uint8_t *src = avstream->codecpar->extradata;
++    unsigned startcode = AV_RB32(src);
++    if (startcode == 0x00000001 || (startcode & 0xffffff00) == 0x00000100)
++      return true;
++    if (avstream->codecpar->codec_tag == MKTAG('A', 'V', 'C', '1') || avstream->codecpar->codec_tag == MKTAG('a', 'v', 'c', '1'))
++      return false;
++  }
++  return true;
++}
++
++bool CDVDCodecUtils::ProcessH264MVCExtradata(uint8_t *data, int data_size, uint8_t **mvc_data, int *mvc_data_size)
++{
++  uint8_t* extradata = data;
++  int extradata_size = data_size;
++
++  if (extradata_size > 4 && *(char *)extradata == 1)
++  {
++    // Find "mvcC" atom
++    uint32_t state = -1;
++    int i = 0;
++    for (; i < extradata_size; i++)
++    {
++      state = (state << 8) | extradata[i];
++      if (state == MKBETAG('m', 'v', 'c', 'C'))
++        break;
++    }
++    if (i >= 8 && i < extradata_size)
++    {
++      // Update pointers to the start of the mvcC atom
++      extradata = extradata + i - 7;
++      extradata_size = extradata_size - i + 7;
++      // verify size atom and actual size
++      if (extradata_size >= 14 && (AV_RB32(extradata) + 4) <= extradata_size)
++      {
++        extradata += 8;
++        extradata_size -= 8;
++        if (*(char *)extradata == 1)
++        {
++          if (mvc_data)
++            *mvc_data = extradata;
++          if (mvc_data_size)
++            *mvc_data_size = extradata_size;
++          return true;
++        }
++      }
++    }
++  }
++  return false;
++}
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/DVDCodecUtils.h b/xbmc/cores/VideoPlayer/DVDCodecs/DVDCodecUtils.h
+index 37872d1624..ee5e9c8a4b 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/DVDCodecUtils.h
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/DVDCodecUtils.h
+@@ -8,11 +8,16 @@
+ 
+ #pragma once
+ 
++#include "Video/DVDVideoCodec.h"
++
++class AVStream;
+ 
+ class CDVDCodecUtils
+ {
+ public:
+   static bool IsVP3CompatibleWidth(int width);
+   static double NormalizeFrameduration(double frameduration, bool *match = nullptr);
++  static bool IsH264AnnexB(std::string format, AVStream *avstream);
++  static bool ProcessH264MVCExtradata(uint8_t *extradata, int extradata_size, uint8_t **mvc_extradata = nullptr, int *mvc_extradata_size = nullptr);
+ };
+ 
+diff --git a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamBluray.cpp b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamBluray.cpp
+index cc69f7eede..be6e8a86b3 100644
+--- a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamBluray.cpp
++++ b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamBluray.cpp
+@@ -1200,7 +1200,7 @@ bool CDVDInputStreamBluray::ProcessItem(int playitem)
+ 
+   m_titleInfo = bd_get_playlist_info(m_bd, playitem, m_angle);
+ 
+-  if (CSettings::GetInstance().GetBool("videoplayer.supportmvc") && !m_bMVCDisabled)
++  if (!m_bMVCDisabled)
+   {
+     MPLS_PL * mpls = bd_get_title_mpls(m_bd);
+     if (mpls)
+-- 
+2.28.0
+

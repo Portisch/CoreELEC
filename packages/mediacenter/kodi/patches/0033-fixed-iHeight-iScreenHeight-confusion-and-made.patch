@@ -1,0 +1,116 @@
+From 1d887f3a06267a99e884ce34dd9b3b560944c264 Mon Sep 17 00:00:00 2001
+From: tanio99 <tanio99@wolke7.net>
+Date: Tue, 7 Jul 2020 06:56:13 +0200
+Subject: [PATCH 33/41] fixed iHeight/iScreenHeight confusion and made 
+ Choose3dMode() protected
+
+---
+ xbmc/windowing/amlogic/WinSystemAmlogic.cpp | 38 ++++++++++-----------
+ xbmc/windowing/amlogic/WinSystemAmlogic.h   |  2 +-
+ 2 files changed, 19 insertions(+), 21 deletions(-)
+
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+index ccd1d02bf3..8be71c6097 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+@@ -156,13 +156,13 @@ bool CWinSystemAmlogic::DestroyWindowSystem()
+   return true;
+ }
+ 
+-RESOLUTION_INFO CWinSystemAmlogic::Choose3dMode(RENDER_STEREO_MODE stereo_mode, const RESOLUTION_INFO &res)
++const RESOLUTION_INFO &CWinSystemAmlogic::Choose3dRes(RENDER_STEREO_MODE stereo_mode, const RESOLUTION_INFO &res)
+ {
+   if (stereo_mode != RENDER_STEREO_MODE_SPLIT_HORIZONTAL
+       && stereo_mode != RENDER_STEREO_MODE_SPLIT_VERTICAL
+       && stereo_mode != RENDER_STEREO_MODE_HARDWAREBASED)
+   {
+-    // unsupported (3D) mode
++    // unsupported (3D) mode or no 3D mode at all
+     return res;
+   }
+ 
+@@ -176,8 +176,8 @@ RESOLUTION_INFO CWinSystemAmlogic::Choose3dMode(RENDER_STEREO_MODE stereo_mode,
+       continue;
+ 
+     if (resolutions3d[i].dwFlags&flags3d
+-        && resolutions3d[i].iWidth == res.iWidth
+-        && resolutions3d[i].iHeight == res.iHeight
++        && resolutions3d[i].iScreenWidth == res.iScreenWidth
++        && resolutions3d[i].iScreenHeight == res.iScreenHeight
+         && resolutions3d[i].fRefreshRate == res.fRefreshRate)
+     {
+       CLog::Log(LOGDEBUG, "exact match found: %s", resolutions3d[i].strMode.c_str());
+@@ -193,8 +193,8 @@ RESOLUTION_INFO CWinSystemAmlogic::Choose3dMode(RENDER_STEREO_MODE stereo_mode,
+       continue;
+ 
+     if (resolutions3d[i].dwFlags&flags3d
+-        && resolutions3d[i].iWidth == res.iWidth
+-        && resolutions3d[i].iHeight == res.iHeight)
++        && resolutions3d[i].iScreenWidth == res.iScreenWidth
++        && resolutions3d[i].iScreenHeight == res.iScreenHeight)
+     {
+       CLog::Log(LOGDEBUG, "matching resolution found: %s", resolutions3d[i].strMode.c_str());
+       return resolutions3d[i];
+@@ -214,19 +214,17 @@ bool CWinSystemAmlogic::CreateNewWindow(const std::string& name,
+   current_resolution.iWidth = current_resolution.iHeight = 0;
+   RENDER_STEREO_MODE stereo_mode = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
+ 
+-  RESOLUTION_INFO myRes = Choose3dMode(stereo_mode, res);
+-
+-  m_nWidth        = myRes.iWidth;
+-  m_nHeight       = myRes.iHeight;
+-  m_displayWidth  = myRes.iScreenWidth;
+-  m_displayHeight = myRes.iScreenHeight;
+-  m_fRefreshRate  = myRes.fRefreshRate;
++  m_nWidth        = res.iWidth;
++  m_nHeight       = res.iHeight;
++  m_displayWidth  = res.iScreenWidth;
++  m_displayHeight = res.iScreenHeight;
++  m_fRefreshRate  = res.fRefreshRate;
+ 
+   if ((m_bWindowCreated && aml_get_native_resolution(&current_resolution)) &&
+-    current_resolution.iWidth == myRes.iWidth && current_resolution.iHeight == myRes.iHeight &&
+-    current_resolution.iScreenWidth == myRes.iScreenWidth && current_resolution.iScreenHeight == myRes.iScreenHeight &&
+-    m_bFullScreen == fullScreen && current_resolution.fRefreshRate == myRes.fRefreshRate &&
+-    (current_resolution.dwFlags & D3DPRESENTFLAG_MODEMASK) == (myRes.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
++    current_resolution.iWidth == res.iWidth && current_resolution.iHeight == res.iHeight &&
++    current_resolution.iScreenWidth == res.iScreenWidth && current_resolution.iScreenHeight == res.iScreenHeight &&
++    m_bFullScreen == fullScreen && current_resolution.fRefreshRate == res.fRefreshRate &&
++    (current_resolution.dwFlags & D3DPRESENTFLAG_MODEMASK) == (res.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
+     m_stereo_mode == stereo_mode)
+   {
+     CLog::Log(LOGDEBUG, "CWinSystemEGL::CreateNewWindow: No need to create a new window");
+@@ -253,12 +251,12 @@ bool CWinSystemAmlogic::CreateNewWindow(const std::string& name,
+ 
+ #ifdef _FBDEV_WINDOW_H_
+   fbdev_window *nativeWindow = new fbdev_window;
+-  nativeWindow->width = res.iScreenWidth;
+-  nativeWindow->height = res.iScreenHeight;
++  nativeWindow->width = res.iWidth;
++  nativeWindow->height = res.iHeight;
+   m_nativeWindow = static_cast<EGLNativeWindowType>(nativeWindow);
+ #endif
+ 
+-  aml_set_native_resolution(myRes, m_framebuffer_name, stereo_mode);
++  aml_set_native_resolution(res, m_framebuffer_name, stereo_mode);
+ 
+   if (!m_delayDispReset)
+   {
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.h b/xbmc/windowing/amlogic/WinSystemAmlogic.h
+index ea292010d9..18fa6acf5f 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.h
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.h
+@@ -55,9 +55,9 @@ protected:
+   std::vector<IDispResource*> m_resources;
+   std::unique_ptr<OPTIONALS::CLircContainer, OPTIONALS::delete_CLircContainer> m_lirc;
+   std::unique_ptr<CLibInputHandler> m_libinput;
++  const RESOLUTION_INFO &Choose3dRes(RENDER_STEREO_MODE stereo_mode, const RESOLUTION_INFO &res);
+ private:
+   std::vector<RESOLUTION_INFO> resolutions3d;
+   
+   void Update3dResolutions();
+-  RESOLUTION_INFO Choose3dMode(RENDER_STEREO_MODE stereo_mode, const RESOLUTION_INFO &res);
+ };
+-- 
+2.28.0
+

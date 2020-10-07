@@ -1,0 +1,33 @@
+From 87f31a7494f8c063213eec201d35828290ae0f19 Mon Sep 17 00:00:00 2001
+From: tanio99 <tanio99@wolke7.net>
+Date: Tue, 12 Nov 2019 18:24:38 +0100
+Subject: [PATCH 40/41] MVC: always set stereo mode for H.264/MVC video streams
+ (fixes m2ts MVC support)
+
+---
+ xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
+index 66cdfc61ea..162307edb2 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
+@@ -1689,13 +1689,14 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
+               {
+                 if (pExt->HasExtention())
+                 {
+-                  st->stereo_mode = pExt->AreEyesFlipped() ? "block_rl" : "block_lr";
+                   mvcStream = static_cast<CDemuxMVC*>(pExt->GetExtentionDemux())->GetAVStream();
+                 }
+               }
+               else
+                 mvcStream = m_pFormatContext->streams[m_pSSIF->GetMVCStreamId()];
+ 
++              st->stereo_mode = pExt && pExt->AreEyesFlipped() ? "block_rl" : "block_lr";
++
+               if (mvcStream && pStream->codecpar->extradata_size > 0 && mvcStream->codecpar->extradata_size > 0)
+               {
+                 uint8_t* extr = pStream->codecpar->extradata;
+-- 
+2.28.0
+

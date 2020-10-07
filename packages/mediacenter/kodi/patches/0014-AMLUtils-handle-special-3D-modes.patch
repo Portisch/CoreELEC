@@ -1,0 +1,77 @@
+From 37499a7d3b963a8544ecc4a3328fcf03e58ff94d Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Sat, 3 Aug 2019 21:04:24 +0100
+Subject: [PATCH 14/41] AMLUtils: handle special 3D modes
+
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
+---
+ xbmc/utils/AMLUtils.cpp | 39 ++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 38 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/utils/AMLUtils.cpp b/xbmc/utils/AMLUtils.cpp
+index 4dbd5eade8..5d3e813592 100644
+--- a/xbmc/utils/AMLUtils.cpp
++++ b/xbmc/utils/AMLUtils.cpp
+@@ -387,6 +387,8 @@ bool aml_mode_to_resolution(const char *mode, RESOLUTION_INFO *res)
+   if (StringUtils::EndsWith(fromMode, "*"))
+     fromMode.erase(fromMode.size() - 1);
+ 
++  int rrate = 60;
++
+   if (StringUtils::EqualsNoCase(fromMode, "panel"))
+   {
+     res->iWidth = aml_axis_value(AML_DISPLAY_AXIS_PARAM_WIDTH);
+@@ -407,7 +409,7 @@ bool aml_mode_to_resolution(const char *mode, RESOLUTION_INFO *res)
+   }
+   else
+   {
+-    int width = 0, height = 0, rrate = 60;
++    int width = 0, height = 0;
+     char smode = 'p';
+ 
+     if (sscanf(fromMode.c_str(), "%dx%dp%dhz", &width, &height, &rrate) == 3)
+@@ -476,6 +478,41 @@ bool aml_mode_to_resolution(const char *mode, RESOLUTION_INFO *res)
+   res->strMode       = StringUtils::Format("%dx%d @ %.2f%s - Full Screen", res->iScreenWidth, res->iScreenHeight, res->fRefreshRate,
+     res->dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "");
+ 
++  if (fromMode.find("FramePacking") != std::string::npos)
++  {
++    /* add corrections for some special case modes frame packing modes */
++
++    if (res->iScreenWidth == 1920)
++    {
++      res->iScreenHeight = 2205;
++      res->iBlanking = 45;
++    }
++
++    if (res->iScreenWidth == 1280)
++    {
++      res->iScreenHeight = 1470;
++      res->iBlanking = 30;
++    }
++
++    res->strId = StringUtils::Format("%dfp%dhz", res->iHeight, rrate);
++    res->dwFlags |= D3DPRESENTFLAG_MODE3DTB;
++  }
++
++  if (fromMode.find("TopBottom") != std::string::npos)
++  {
++    res->fPixelRatio     /= 2;
++    res->iBlanking        = 0;
++    res->dwFlags         |= D3DPRESENTFLAG_MODE3DTB;
++  }
++
++  if (fromMode.find("SidebySide") != std::string::npos)
++  {
++    res->fPixelRatio     *= 2;
++    res->iBlanking        = 0;
++    res->dwFlags         |= D3DPRESENTFLAG_MODE3DSBS;
++  }
++
++
+   return res->iWidth > 0 && res->iHeight> 0;
+ }
+ 
+-- 
+2.28.0
+
