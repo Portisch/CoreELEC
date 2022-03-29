@@ -8,7 +8,7 @@ PKG_REV="109"
 PKG_LICENSE="GPL"
 PKG_SITE="https://github.com/Lord-Grey/hyperion.ng"
 PKG_URL="https://github.com/Lord-Grey/hyperion.ng/archive/$PKG_VERSION.tar.gz"
-PKG_DEPENDS_TARGET="toolchain Python3 avahi libusb qt-everywhere protobuf flatbuffers:host flatbuffers libcec libjpeg-turbo"
+PKG_DEPENDS_TARGET="toolchain Python3 avahi libusb qt-everywhere protobuf flatbuffers:host flatbuffers libcec libjpeg-turbo qmdnsengine"
 PKG_SECTION="service"
 PKG_SHORTDESC="Hyperion.NG: an AmbiLight controller"
 PKG_LONGDESC="Hyperion.NG($PKG_VERSION) is an modern opensource AmbiLight implementation."
@@ -66,4 +66,10 @@ makeinstall_target() {
 addon() {
   mkdir -p $ADDON_BUILD/$PKG_ADDON_ID/bin
     cp $PKG_BUILD/.$TARGET_NAME/bin/* $ADDON_BUILD/$PKG_ADDON_ID/bin
+}
+
+post_unpack() {
+  #mkdir -p $PKG_BUILD/.$TARGET_NAME/lib
+  #cp -r $(get_install_dir qmdnsengine)/usr/lib/libqmdnsengine.a $PKG_BUILD/.$TARGET_NAME/lib
+  #cp -r $(get_install_dir qmdnsengine)/usr/lib/libqmdnsengine.so $PKG_BUILD/.$TARGET_NAME/lib
 }
