@@ -8,7 +8,7 @@ PKG_REV="109"
 PKG_LICENSE="GPL"
 PKG_SITE="https://github.com/Lord-Grey/hyperion.ng"
 PKG_URL="https://github.com/Lord-Grey/hyperion.ng/archive/$PKG_VERSION.tar.gz"
-PKG_DEPENDS_TARGET="toolchain Python3 avahi libusb qt-everywhere protobuf flatbuffers:host flatbuffers libcec"
+PKG_DEPENDS_TARGET="toolchain Python3 avahi libusb qt-everywhere protobuf flatbuffers:host flatbuffers libcec libjpeg-turbo"
 PKG_SECTION="service"
 PKG_SHORTDESC="Hyperion.NG: an AmbiLight controller"
 PKG_LONGDESC="Hyperion.NG($PKG_VERSION) is an modern opensource AmbiLight implementation."
@@ -23,7 +23,7 @@ PKG_AMLOGIC_SUPPORT="-DENABLE_AMLOGIC=0"
 PKG_DISPMANX_SUPPORT="-DENABLE_DISPMANX=0"
 PKG_FB_SUPPORT="-DENABLE_FB=1"
 PKG_X11_SUPPORT="-DENABLE_X11=0"
-PKG_DENABLE_WS281XPWM="-DENABLE_WS281XPWM=0"
+PKG_DENABLE_DEV_WS281XPWM="-DENABLE_DEV_WS281XPWM=0"
 
 if [ "$KODIPLAYER_DRIVER" = "libamcodec" ]; then
   PKG_PLATFORM="-DPLATFORM=amlogic"
@@ -34,7 +34,7 @@ elif [ "$KODIPLAYER_DRIVER" = "bcm2835-driver" ]; then
   PKG_DEPENDS_TARGET="$PKG_DEPENDS_TARGET bcm2835-driver rpi_ws281x"
   PKG_DISPMANX_SUPPORT="-DENABLE_DISPMANX=1"
   PKG_FB_SUPPORT="-DENABLE_FB=0"
-  PKG_DENABLE_WS281XPWM="-DENABLE_WS281XPWM=1"
+  PKG_DENABLE_DEV_WS281XPWM="-DENABLE_DEV_WS281XPWM=1"
 elif [ "$DISPLAYSERVER" = "x11" ]; then
   PKG_DEPENDS_TARGET="$PKG_DEPENDS_TARGET xorg-server xrandr"
   PKG_X11_SUPPORT="-DENABLE_X11=1"
@@ -42,23 +42,22 @@ fi
 
 PKG_CMAKE_OPTS_TARGET="-DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON \
                        -DCMAKE_BUILD_TYPE=Release\
-                       -DUSE_SHARED_AVAHI_LIBS=OFF\
                        -DUSE_SYSTEM_PROTO_LIBS=1 \
                        -DUSE_SYSTEM_FLATBUFFERS_LIBS=ON\
                        $PKG_PLATFORM \
                        $PKG_AMLOGIC_SUPPORT \
                        $PKG_DISPMANX_SUPPORT \
                        $PKG_FB_SUPPORT \
-                       $PKG_DENABLE_WS281XPWM \
+                       $PKG_DENABLE_DEV_WS281XPWM \
                        $PKG_X11_SUPPORT \
                        -DENABLE_V4L2=1 \
                        -DENABLE_OSX=0 \
-                       -DENABLE_SPIDEV=1 \
-                       -DENABLE_TINKERFORGE=0 \
+                       -DENABLE_DEV_SPI=1 \
+                       -DENABLE_MDNS=1 \
+                       -DENABLE_DEV_TINKERFORGE=0 \
                        -DENABLE_TESTS=0 \
                        -DENABLE_DEPLOY_DEPENDENCIES=0 \
-                       -Wno-dev \
-                       -DQT_BIN_PATH=$TOOLCHAIN/bin"
+                       -Wno-dev"
 
 makeinstall_target() {
   : # nothing to do here
