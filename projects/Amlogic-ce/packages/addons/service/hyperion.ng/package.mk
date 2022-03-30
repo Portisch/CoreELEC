@@ -68,8 +68,8 @@ addon() {
     cp $PKG_BUILD/.$TARGET_NAME/bin/* $ADDON_BUILD/$PKG_ADDON_ID/bin
 }
 
-post_unpack() {
+#post_unpack() {
   #mkdir -p $PKG_BUILD/.$TARGET_NAME/lib
   #cp -r $(get_install_dir qmdnsengine)/usr/lib/libqmdnsengine.a $PKG_BUILD/.$TARGET_NAME/lib
   #cp -r $(get_install_dir qmdnsengine)/usr/lib/libqmdnsengine.so $PKG_BUILD/.$TARGET_NAME/lib
-}
+#}
