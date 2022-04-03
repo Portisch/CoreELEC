@@ -1,0 +1,99 @@
+// Generated config file
+
+// Define to enable the AMLogic grabber
+#cmakedefine ENABLE_AMLOGIC
+
+// Define to enable the DispmanX grabber
+#cmakedefine ENABLE_DISPMANX
+
+// Define to enable the DirectX grabber
+#cmakedefine ENABLE_DX
+
+// Define to enable the Framebuffer grabber
+#cmakedefine ENABLE_FB
+
+// Define to enable the Media Foundation grabber
+#cmakedefine ENABLE_MF
+
+// Define to enable the OSX grabber
+#cmakedefine ENABLE_OSX
+
+// Define to enable the Qt grabber
+#cmakedefine ENABLE_QT
+
+// Define to enable the V4L2 grabber
+#cmakedefine ENABLE_V4L2
+
+// Define to enable the X11 grabber
+#cmakedefine ENABLE_X11
+
+// Define to enable the XCB grabber
+#cmakedefine ENABLE_XCB
+
+// Define to enable boblight server
+#cmakedefine ENABLE_BOBLIGHT_SERVER
+
+// Define to enable CEC
+#cmakedefine ENABLE_CEC
+
+// Define to enable flatbuffer server
+#cmakedefine ENABLE_FLATBUF_SERVER
+
+// Define to enable protocol buffer server
+#cmakedefine ENABLE_PROTOBUF_SERVER
+
+// Define to enable hyperion forwarding
+#cmakedefine ENABLE_FORWARDER
+
+// Define to enable enable flatbuffer connect
+#cmakedefine ENABLE_FLATBUF_CONNECT
+
+// Define to enable protocol buffer connect
+#cmakedefine ENABLE_PROTOBUF_CONNECT
+
+// Define to enable the network devices
+#cmakedefine ENABLE_DEV_NETWORK
+
+// Define to enable the Serial devices
+#cmakedefine ENABLE_DEV_SERIAL
+
+// Define to enable the SPI devices
+#cmakedefine ENABLE_DEV_SPI
+
+// Define to enable the Tinkerforge devices
+#cmakedefine ENABLE_DEV_TINKERFORGE
+
+// Define to enable the USB / HID devices
+#cmakedefine ENABLE_DEV_USB_HID
+
+// Define to enable the WS281x-PWM-via-DMA-device using jgarff's library
+#cmakedefine ENABLE_DEV_WS281XPWM
+
+// Define to enable MDNS
+#cmakedefine ENABLE_MDNS
+
+// Define to enable EFFECTENGINE
+#cmakedefine ENABLE_EFFECTENGINE
+
+// Define to enable experimental features
+#cmakedefine ENABLE_EXPERIMENTAL
+
+// Define to enable Hyperion remote control
+#cmakedefine ENABLE_REMOTE_CTL
+
+// Define to enable profiler for development purpose
+#cmakedefine ENABLE_PROFILER
+
+// Define to enable deploy dependencies to packages
+#cmakedefine ENABLE_DEPLOY_DEPENDENCIES
+
+// the hyperion build id string
+#define HYPERION_BUILD_ID "${HYPERION_BUILD_ID}"
+#define HYPERION_GIT_REMOTE "${HYPERION_GIT_REMOTE}"
+
+#define HYPERION_VERSION_MAJOR "${HYPERION_VERSION_MAJOR}"
+#define HYPERION_VERSION_MINOR "${HYPERION_VERSION_MINOR}"
+#define HYPERION_VERSION_PATCH "${HYPERION_VERSION_PATCH}"
+#define HYPERION_VERSION "${HYPERION_VERSION}"
+
+#define HYPERION_JSON_VERSION "1.0.0"

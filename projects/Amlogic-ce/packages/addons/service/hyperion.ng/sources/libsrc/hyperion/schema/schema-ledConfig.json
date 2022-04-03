@@ -1,0 +1,182 @@
+{
+	"type": "object",
+	"properties": {
+		"classic": {
+			"type": "object",
+			"required": true,
+			"properties": {
+				"top": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 1
+				},
+				"bottom": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0
+				},
+				"left": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0
+				},
+				"right": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0
+				},
+				"glength": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0
+				},
+				"gpos": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0
+				},
+				"position": {
+					"type": "integer",
+					"default": 0
+				},
+				"reverse": {
+					"type": "boolean",
+					"default": false
+				},
+				"hdepth": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 8
+				},
+				"vdepth": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 5
+				},
+				"overlap": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0
+				},
+				"edgegap": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 50,
+					"default": 0
+				},
+				"ptlh": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100,
+					"default": 0
+				},
+				"ptlv": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100,
+					"default": 0
+				},
+				"ptrh": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100,
+					"default": 0
+				},
+				"ptrv": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100,
+					"default": 0
+				},
+				"pblh": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100,
+					"default": 0
+				},
+				"pblv": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100,
+					"default": 0
+				},
+				"pbrh": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100,
+					"default": 0
+				},
+				"pbrv": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100,
+					"default": 0
+				}
+			},
+			"additionalProperties": false
+		},
+		"matrix": {
+			"type": "object",
+			"required": true,
+			"properties": {
+				"ledshoriz": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 50,
+					"default": 0
+				},
+				"ledsvert": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 50,
+					"default": 0
+				},
+				"cabling": {
+					"type": "string",
+					"enum": [ "snake", "parallel" ]
+				},
+				"direction": {
+					"type": "string",
+					"enum": [ "horizontal", "vertical" ]
+				},
+				"start": {
+					"type": "string",
+					"enum": [ "top-left", "top-right", "bottom-left", "bottom-right" ]
+				}
+			},
+			"additionalProperties": false
+		},
+		"ledBlacklist": {
+			"type": "array",
+			"title": "conf_leds_layout_blacklist_rules_title",
+			"uniqueItems": true,
+			"items": {
+				"type": "object",
+				"title": "conf_leds_layout_blacklist_rule_title",
+				"required": true,
+				"properties": {
+					"start": {
+						"type": "integer",
+						"minimum": 0,
+						"default": 0,
+						"title": "conf_leds_layout_blacklist_start_title",
+						"required": true,
+						"propertyOrder": 1
+					},
+					"num": {
+						"type": "integer",
+						"minimum": 1,
+						"default": 1,
+						"title": "conf_leds_layout_blacklist_num_title",
+						"required": true,
+						"propertyOrder": 2
+					}
+				}
+			},
+			"propertyOrder": 1
+		}
+	},
+		"additionalProperties": true
+	}

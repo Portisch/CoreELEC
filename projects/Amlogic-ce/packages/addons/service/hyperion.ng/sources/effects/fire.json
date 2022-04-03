@@ -1,0 +1,16 @@
+{
+	"name" : "Fire",
+	"script" : "gif.py",
+	"args" :
+	{
+		"cropBottom": 0,
+		"cropLeft": 0,
+		"cropRight": 0,
+		"cropTop": 0,
+		"file" : ":fire.gif",
+		"fps" :25,
+		"grayscale": false,
+		"imageSource": "file",
+		"reverse" : false
+	}
+}
