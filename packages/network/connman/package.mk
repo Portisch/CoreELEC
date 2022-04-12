@@ -12,7 +12,7 @@ PKG_DEPENDS_TARGET="toolchain glib readline dbus iptables"
 PKG_LONGDESC="A modular network connection manager."
 PKG_TOOLCHAIN="autotools"
 
-PKG_CONFIGURE_OPTS_TARGET="--srcdir=.. \
+PKG_CONFIGURE_OPTS_TARGET="--srcdir=${PKG_BUILD} \
                            --disable-debug \
                            --disable-hh2serial-gps \
                            --disable-openconnect \
@@ -83,7 +83,7 @@ post_makeinstall_target() {
     cp -P ${PKG_DIR}/scripts/connman-setup ${INSTALL}/usr/lib/connman
 
   mkdir -p ${INSTALL}/etc/connman
-    cp ../src/main.conf ${INSTALL}/etc/connman
+    cp src/main.conf ${INSTALL}/etc/connman
     sed -i ${INSTALL}/etc/connman/main.conf \
         -e "s|^# BackgroundScanning.*|BackgroundScanning = true|g" \
         -e "s|^# UseGatewaysAsTimeservers.*|UseGatewaysAsTimeservers = false|g" \
