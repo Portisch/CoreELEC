@@ -16,8 +16,6 @@ PKG_TOOLCHAIN="make"
 PKG_MAKE_OPTS_TARGET="dtc fdtput fdtget fdtdump libfdt"
 PKG_MAKE_OPTS_HOST="dtc libfdt"
 
-
-
 pre_configure() {
   export LDLIBS_dtc="-lz"
   export EXTRA_CFLAGS="-I${TOOLCHAIN}/include"
