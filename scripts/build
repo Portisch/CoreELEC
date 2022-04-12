@@ -221,7 +221,7 @@ mkdir -p "${PKG_BUILD}"
 
 cd "${PKG_BUILD}"
 
-if [ -f "${PKG_CONFIGURE_SCRIPT}" -o -f "${PKG_CMAKE_SCRIPT}" -o -f "${PKG_MESON_SCRIPT}" ]; then
+if [ "${PKG_TOOLCHAIN}" = "configure" -o "${PKG_TOOLCHAIN:0:5}" = "cmake" -o "${PKG_TOOLCHAIN}" = "meson" ]; then
   case "${TARGET}" in
     "target")    PKG_REAL_BUILD="${PKG_BUILD}/.${TARGET_NAME}" ;;
     "host")      PKG_REAL_BUILD="${PKG_BUILD}/.${HOST_NAME}" ;;
