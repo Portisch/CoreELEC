@@ -16,9 +16,15 @@ PKG_TOOLCHAIN="make"
 PKG_MAKE_OPTS_TARGET="dtc fdtput fdtget fdtdump libfdt"
 PKG_MAKE_OPTS_HOST="dtc libfdt"
 
-pre_configure_host() {
+
+
+pre_configure() {
   export LDLIBS_dtc="-lz"
   export EXTRA_CFLAGS="-I${TOOLCHAIN}/include"
+}
+
+pre_configure_target() {
+  export LDFLAGS="-L$(get_install_dir zlib)/usr/lib"
 }
 
 pre_make_host() {

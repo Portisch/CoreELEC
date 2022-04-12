@@ -92,7 +92,7 @@ pre_configure_host() {
 
 post_make_host() {
   # python distutils per default adds -L${LIBDIR} when linking binary extensions
-  sed -e "s|^ 'LIBDIR':.*| 'LIBDIR': '/usr/lib',|g" -i $(find ${PKG_BUILD}/.${HOST_NAME} -not -path '*/__pycache__/*' -name '_sysconfigdata__*.py')
+  sed -e "s|^ 'LIBDIR':.*| 'LIBDIR': '/usr/lib',|g" -i $(find ${PKG_BUILD} -not -path '*/__pycache__/*' -name '_sysconfigdata__*.py')
 }
 
 post_makeinstall_host() {

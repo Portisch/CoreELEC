@@ -13,7 +13,7 @@ PKG_LONGDESC="minimal, cross platform, C++ GUID library"
 PKG_TOOLCHAIN="manual"
 
 make_target() {
-  ${CXX} -c ../src/guid.cpp -o guid.o ${CXXFLAGS} -I../include --std=c++17 -DGUID_LIBUUID
+  ${CXX} -c src/guid.cpp -o guid.o ${CXXFLAGS} -Iinclude --std=c++17 -DGUID_LIBUUID
   ${AR} rvs libcrossguid.a guid.o
 }
 
@@ -21,5 +21,5 @@ makeinstall_target() {
   mkdir -p ${SYSROOT_PREFIX}/usr/lib/
   cp libcrossguid.a ${SYSROOT_PREFIX}/usr/lib/
   mkdir -p ${SYSROOT_PREFIX}/usr/include/crossguid/
-  cp ../include/crossguid/guid.hpp ${SYSROOT_PREFIX}/usr/include/crossguid
+  cp include/crossguid/guid.hpp ${SYSROOT_PREFIX}/usr/include/crossguid
 }
